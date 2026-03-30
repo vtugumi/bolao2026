@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* ===== KNOCKOUT BRACKET STYLES ===== */
+
+.bracket-container {
+  min-height: 420px;
+}
+
+.bracket-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 1300px;
+}
+
+/* Each side holds rounds flowing toward center */
+.bracket-side {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Right side mirrors left - SF near center, R32 at far right */
+
+/* Each round is a vertical column of games, spaced evenly */
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+/* Height scales by number of games to keep alignment */
+.bracket-round-8 { min-height: 580px; }
+.bracket-round-4 { min-height: 580px; }
+.bracket-round-2 { min-height: 580px; }
+.bracket-round-1 { min-height: 580px; }
+
+.bracket-game {
+  padding: 2px 0;
+}
+
+/* Match slot - bigger for readability */
+.bracket-match {
+  background: white;
+  flex-shrink: 0;
+}
+
+.bracket-match-normal {
+  width: 130px;
+  font-size: 10px;
+}
+
+.bracket-match-small {
+  width: 120px;
+  font-size: 10px;
+}
+
+.bracket-team {
+  display: flex;
+  align-items: center;
+  padding: 4px 6px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  gap: 4px;
+}
+
+/* Flag emoji - visible */
+.bracket-flag {
+  font-size: 14px;
+  flex-shrink: 0;
+  min-width: 18px;
+  text-align: center;
+}
+
+.bracket-match-small .bracket-flag {
+  font-size: 12px;
+  min-width: 15px;
+}
+
+.bracket-team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.bracket-score {
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 12px;
+  min-width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.bracket-match-small .bracket-score {
+  font-size: 11px;
+}
+
+/* Center column */
+.bracket-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px;
+  padding: 0 10px;
+}
+
+.bracket-center .bracket-match {
+  width: 155px;
+  font-size: 12px;
+}
+
+.bracket-center .bracket-flag {
+  font-size: 16px;
+}
+
+.bracket-center .bracket-score {
+  font-size: 14px;
+}
+
+.bracket-trophy {
+  margin-bottom: 10px;
+}
+
+/* Bottom labels */
+.bracket-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0 0;
+  font-size: 9px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  min-width: 1300px;
+}
+
+.bracket-labels span {
+  flex: 1;
+  text-align: center;
+}
