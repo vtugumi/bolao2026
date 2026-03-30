@@ -35,7 +35,7 @@ export default function AdminBonusPage() {
     Promise.all([
       fetch('/api/admin/bonus').then(r => r.ok ? r.json() : {}),
       fetch('/api/admin/bonus/predictions').then(r => r.ok ? r.json() : { predictions: [] }),
-    ]).then(([bonusData, predData]) => {
+    ]).then(([bonusData, predData]: [BonusData, { predictions?: UserBonusPrediction[] }]) => {
       setChampion(bonusData.champion || '');
       setRunnerUp(bonusData.runnerUp || '');
       setTopScorer(bonusData.topScorer || '');
