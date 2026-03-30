@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Polyfill __dirname for Edge Runtime compatibility
+if (typeof globalThis.__dirname === 'undefined') {
+  (globalThis as Record<string, unknown>).__dirname = '';
+}
+if (typeof globalThis.__filename === 'undefined') {
+  (globalThis as Record<string, unknown>).__filename = '';
+}
+
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('bolao_token')?.value;
   const { pathname } = request.nextUrl;
