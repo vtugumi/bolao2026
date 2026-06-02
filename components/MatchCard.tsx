@@ -309,14 +309,14 @@ export default function MatchCard({ match, showPrediction, onSavePrediction }: M
                 <label className="text-xs text-gray-500 block mb-1">{homeName}</label>
                 <input type="number" min="0" max="99" value={homeGoals}
                   onChange={(e) => setHomeGoals(e.target.value)}
-                  className="w-16 h-10 text-center text-lg font-bold border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none" placeholder="0" />
+                  className="w-16 h-10 text-center text-lg font-bold border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none" placeholder="–" />
               </div>
               <span className="text-gray-400 font-bold text-lg mt-5">x</span>
               <div className="text-center">
                 <label className="text-xs text-gray-500 block mb-1">{awayName}</label>
                 <input type="number" min="0" max="99" value={awayGoals}
                   onChange={(e) => setAwayGoals(e.target.value)}
-                  className="w-16 h-10 text-center text-lg font-bold border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none" placeholder="0" />
+                  className="w-16 h-10 text-center text-lg font-bold border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none" placeholder="–" />
               </div>
             </div>
 
