@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import LeaderboardTable from '@/components/LeaderboardTable';
 
@@ -22,11 +23,11 @@ interface Group {
 export default function RankingPage() {
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
-  const [loadingGroup, setLoadingGroup] = useState(false);
+  const [groupsLoaded, setGroupsLoaded] = useState(false);
 
+  // Load user's groups first
   useEffect(() => {
     const fetchGroups = async () => {
       try {
@@ -34,77 +35,86 @@ export default function RankingPage() {
         if (res.ok) {
           const data = await res.json();
           setGroups(data);
+          // Auto-select first group
+          if (data.length > 0) {
+            setSelectedGroup(String(data[0].id));
+          }
         }
       } catch {
         // user might not be logged in
+      } finally {
+        setGroupsLoaded(true);
       }
     };
     fetchGroups();
   }, []);
 
+  // Load rankings when group is selected
   useEffect(() => {
+    if (!groupsLoaded) return;
+
+    if (!selectedGroup) {
+      setLoading(false);
+      return;
+    }
+
     const fetchRankings = async () => {
-      if (selectedGroup) {
-        setLoadingGroup(true);
-        try {
-          const res = await fetch(`/api/groups/private/${selectedGroup}`);
-          if (res.ok) {
-            const data = await res.json();
-            const mapped = (data.rankings || []).map((r: { id: number; name: string; totalPoints: number; exactScores: number; bonusHits: number; knockoutPoints: number; rank: number }) => ({
-              userId: String(r.id),
-              name: r.name,
-              totalPoints: r.totalPoints,
-              exactScores: r.exactScores,
-              correctResults: r.bonusHits,
-              bonusPoints: r.knockoutPoints,
-              position: r.rank,
-            }));
-            setRankings(mapped);
-            setUpdatedAt(null);
-          }
-        } catch (err) {
-          console.error('Erro ao carregar ranking do grupo:', err);
-        } finally {
-          setLoadingGroup(false);
-          setLoading(false);
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/groups/private/${selectedGroup}`);
+        if (res.ok) {
+          const data = await res.json();
+          const mapped = (data.rankings || []).map((r: { id: number; name: string; totalPoints: number; exactScores: number; bonusHits: number; knockoutPoints: number; rank: number }) => ({
+            userId: String(r.id),
+            name: r.name,
+            totalPoints: r.totalPoints,
+            exactScores: r.exactScores,
+            correctResults: r.bonusHits,
+            bonusPoints: r.knockoutPoints,
+            position: r.rank,
+          }));
+          setRankings(mapped);
         }
-      } else {
-        setLoading(true);
-        try {
-          const res = await fetch('/api/rankings');
-          if (res.ok) {
-            const data = await res.json();
-            setRankings(data.rankings || data || []);
-            if (data.updatedAt) {
-              setUpdatedAt(data.updatedAt);
-            }
-          }
-        } catch (err) {
-          console.error('Erro ao carregar ranking:', err);
-        } finally {
-          setLoading(false);
-        }
+      } catch (err) {
+        console.error('Erro ao carregar ranking do grupo:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchRankings();
-  }, [selectedGroup]);
+  }, [selectedGroup, groupsLoaded]);
 
-  const isLoading = loading || loadingGroup;
+  // No groups yet
+  if (groupsLoaded && groups.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold text-emerald-800 mb-4">Ranking</h1>
+        <p className="text-gray-500 mb-6">
+          Voce precisa entrar em um grupo para ver o ranking.
+        </p>
+        <Link
+          href="/grupos"
+          className="bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+        >
+          Ir para Grupos
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-emerald-800">
           Ranking
         </h1>
-        {groups.length > 0 && (
+        {groups.length > 1 && (
           <select
             value={selectedGroup}
             onChange={(e) => setSelectedGroup(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
           >
-            <option value="">Ranking Geral</option>
             {groups.map((g) => (
               <option key={g.id} value={String(g.id)}>
                 {g.name}
@@ -112,24 +122,12 @@ export default function RankingPage() {
             ))}
           </select>
         )}
+        {groups.length === 1 && (
+          <span className="text-sm text-gray-500">{groups[0].name}</span>
+        )}
       </div>
 
-      {updatedAt && (
-        <p className="text-sm text-gray-400 mb-6">
-          Atualizado em{' '}
-          {new Date(updatedAt).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </p>
-      )}
-
-      {!updatedAt && <div className="mb-6" />}
-
-      {isLoading ? (
+      {loading ? (
         <div className="flex justify-center py-20">
           <LoadingSpinner />
         </div>
