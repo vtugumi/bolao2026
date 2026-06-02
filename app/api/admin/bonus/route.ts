@@ -7,6 +7,16 @@ const BONUS_KEYS: Record<string, string> = {
   champion: 'CHAMPION',
   runnerUp: 'RUNNER_UP',
   topScorer: 'TOP_SCORER',
+  thirdPlace: 'THIRD_PLACE',
+  fourthPlace: 'FOURTH_PLACE',
+}
+
+const SETTING_KEYS: Record<string, string> = {
+  champion: 'officialChampion',
+  runnerUp: 'officialRunnerUp',
+  topScorer: 'officialTopScorer',
+  thirdPlace: 'officialThirdPlace',
+  fourthPlace: 'officialFourthPlace',
 }
 
 export async function GET(request: NextRequest) {
@@ -14,7 +24,7 @@ export async function GET(request: NextRequest) {
     const user = await getSessionUser(request)
     if (!user) {
       return NextResponse.json(
-        { error: 'Não autenticado.' },
+        { error: 'Nao autenticado.' },
         { status: 401 }
       )
     }
@@ -27,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     const settings = await prisma.setting.findMany({
       where: {
-        key: { in: ['officialChampion', 'officialRunnerUp', 'officialTopScorer'] },
+        key: { in: Object.values(SETTING_KEYS) },
       },
     })
 
@@ -35,17 +45,21 @@ export async function GET(request: NextRequest) {
       champion: null,
       runnerUp: null,
       topScorer: null,
+      thirdPlace: null,
+      fourthPlace: null,
     }
 
     for (const setting of settings) {
-      if (setting.key === 'officialChampion') result.champion = setting.value
-      if (setting.key === 'officialRunnerUp') result.runnerUp = setting.value
-      if (setting.key === 'officialTopScorer') result.topScorer = setting.value
+      for (const [field, settingKey] of Object.entries(SETTING_KEYS)) {
+        if (setting.key === settingKey) {
+          result[field] = setting.value
+        }
+      }
     }
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('Erro ao buscar resultados bônus:', error)
+    console.error('Erro ao buscar resultados bonus:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor.' },
       { status: 500 }
@@ -58,7 +72,7 @@ export async function POST(request: NextRequest) {
     const user = await getSessionUser(request)
     if (!user) {
       return NextResponse.json(
-        { error: 'Não autenticado.' },
+        { error: 'Nao autenticado.' },
         { status: 401 }
       )
     }
@@ -70,18 +84,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { champion, runnerUp, topScorer } = body
 
     const updates: { key: string; value: string; type: string }[] = []
 
-    if (champion !== undefined) {
-      updates.push({ key: 'officialChampion', value: champion, type: 'CHAMPION' })
-    }
-    if (runnerUp !== undefined) {
-      updates.push({ key: 'officialRunnerUp', value: runnerUp, type: 'RUNNER_UP' })
-    }
-    if (topScorer !== undefined) {
-      updates.push({ key: 'officialTopScorer', value: topScorer, type: 'TOP_SCORER' })
+    for (const [field, type] of Object.entries(BONUS_KEYS)) {
+      if (body[field] !== undefined) {
+        updates.push({
+          key: SETTING_KEYS[field],
+          value: body[field],
+          type,
+        })
+      }
     }
 
     // Save to settings
@@ -108,9 +121,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ message: 'Resultados bônus atualizados com sucesso.' })
+    return NextResponse.json({ message: 'Resultados bonus atualizados com sucesso.' })
   } catch (error) {
-    console.error('Erro ao salvar resultados bônus:', error)
+    console.error('Erro ao salvar resultados bonus:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor.' },
       { status: 500 }

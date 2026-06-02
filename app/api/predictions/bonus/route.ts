@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
 
-const VALID_BONUS_TYPES = ['CHAMPION', 'RUNNER_UP', 'TOP_SCORER']
+const VALID_BONUS_TYPES = ['CHAMPION', 'RUNNER_UP', 'TOP_SCORER', 'THIRD_PLACE', 'FOURTH_PLACE']
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     if (!VALID_BONUS_TYPES.includes(type)) {
       return NextResponse.json(
-        { error: 'Tipo inválido. Use: CHAMPION, RUNNER_UP ou TOP_SCORER.' },
+        { error: 'Tipo invalido. Use: CHAMPION, RUNNER_UP, TOP_SCORER, THIRD_PLACE ou FOURTH_PLACE.' },
         { status: 400 }
       )
     }

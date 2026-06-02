@@ -11,9 +11,15 @@ export const STAGES = {
 export const GROUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'] as const
 
 export const SCORING = {
-  GROUP: { NONE: 0, WRONG: 1, OUTCOME: 2, EXACT: 5 },
-  KNOCKOUT: { NONE: 0, WRONG: 1, QUALIFIER: 5, EXACT: 8 },
-  BONUS: { CHAMPION: 20, RUNNER_UP: 15, TOP_SCORER: 15 },
+  GROUP: { NONE: 0, WRONG: 0, OUTCOME: 2, EXACT: 5 },
+  KNOCKOUT: { NONE: 0, WRONG: 0, QUALIFIER: 5, EXACT: 8 },
+  BONUS: {
+    CHAMPION: 120,
+    RUNNER_UP: 80,
+    TOP_SCORER: 80,
+    THIRD_PLACE: 50,
+    FOURTH_PLACE: 50,
+  },
 } as const
 
 export const KNOCKOUT_STAGES = ['R32', 'R16', 'QF', 'SF', '3RD', 'FINAL'] as const

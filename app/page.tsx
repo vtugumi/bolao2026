@@ -86,7 +86,8 @@ export default function HomePage() {
             <div>
               <h3 className="font-bold text-amber-800 mb-1">Palpites Bonus (antes da Copa comecar!)</h3>
               <p className="text-gray-600 text-sm">
-                Sua primeira missao: escolha quem sera o <strong>campeao</strong>, o <strong>vice-campeao</strong> e
+                Sua primeira missao: escolha quem sera o <strong>campeao</strong>, o <strong>vice-campeao</strong>,
+                o <strong>terceiro lugar</strong>, o <strong>quarto lugar</strong> e
                 o <strong>artilheiro</strong> da Copa. Esses palpites valem pontos extras e precisam ser
                 feitos <strong>antes do primeiro jogo da Copa</strong> — depois disso, ficam bloqueados.
               </p>
@@ -168,11 +169,7 @@ export default function HomePage() {
                   <span className="bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full text-xs font-bold">2 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Errou tudo</span>
-                  <span className="bg-red-200 text-red-800 px-2 py-0.5 rounded-full text-xs font-bold">1 pt</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Sem palpite</span>
+                  <span className="text-sm text-gray-600">Errou / Sem palpite</span>
                   <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs font-bold">0 pts</span>
                 </div>
               </div>
@@ -191,11 +188,7 @@ export default function HomePage() {
                   <span className="bg-green-200 text-green-800 px-2 py-0.5 rounded-full text-xs font-bold">5 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Errou tudo</span>
-                  <span className="bg-red-200 text-red-800 px-2 py-0.5 rounded-full text-xs font-bold">1 pt</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Sem palpite</span>
+                  <span className="text-sm text-gray-600">Errou / Sem palpite</span>
                   <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs font-bold">0 pts</span>
                 </div>
               </div>
@@ -207,15 +200,23 @@ export default function HomePage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Campeao correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">20 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">120 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Vice-campeao correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">15 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">80 pts</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Terceiro lugar correto</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">50 pts</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Quarto lugar correto</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">50 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Artilheiro correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">15 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">80 pts</span>
                 </div>
               </div>
               <p className="text-[10px] text-amber-600 mt-3 text-center italic">

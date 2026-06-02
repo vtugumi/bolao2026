@@ -9,6 +9,8 @@ interface BonusData {
   champion?: string;
   runnerUp?: string;
   topScorer?: string;
+  thirdPlace?: string;
+  fourthPlace?: string;
 }
 
 interface UserBonusPrediction {
@@ -20,10 +22,38 @@ interface UserBonusPrediction {
   points: number | null;
 }
 
+const TYPE_LABELS: Record<string, string> = {
+  CHAMPION: 'Campeao',
+  RUNNER_UP: 'Vice-campeao',
+  THIRD_PLACE: 'Terceiro lugar',
+  FOURTH_PLACE: 'Quarto lugar',
+  TOP_SCORER: 'Artilheiro',
+};
+
+const TYPE_POINTS: Record<string, number> = {
+  CHAMPION: 120,
+  RUNNER_UP: 80,
+  THIRD_PLACE: 50,
+  FOURTH_PLACE: 50,
+  TOP_SCORER: 80,
+};
+
+const TYPE_ICONS: Record<string, string> = {
+  CHAMPION: '\u{1F947}',
+  RUNNER_UP: '\u{1F948}',
+  THIRD_PLACE: '\u{1F949}',
+  FOURTH_PLACE: '4\u{FE0F}\u{20E3}',
+  TOP_SCORER: '\u{26BD}',
+};
+
+const ALL_BONUS_TYPES = ['CHAMPION', 'RUNNER_UP', 'THIRD_PLACE', 'FOURTH_PLACE', 'TOP_SCORER'];
+
 export default function AdminBonusPage() {
   const [champion, setChampion] = useState('');
   const [runnerUp, setRunnerUp] = useState('');
   const [topScorer, setTopScorer] = useState('');
+  const [thirdPlace, setThirdPlace] = useState('');
+  const [fourthPlace, setFourthPlace] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -39,6 +69,8 @@ export default function AdminBonusPage() {
       setChampion(bonusData.champion || '');
       setRunnerUp(bonusData.runnerUp || '');
       setTopScorer(bonusData.topScorer || '');
+      setThirdPlace(bonusData.thirdPlace || '');
+      setFourthPlace(bonusData.fourthPlace || '');
       setAllPredictions(predData.predictions || []);
     })
     .catch(console.error)
@@ -54,7 +86,7 @@ export default function AdminBonusPage() {
       const res = await fetch('/api/admin/bonus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ champion, runnerUp, topScorer }),
+        body: JSON.stringify({ champion, runnerUp, topScorer, thirdPlace, fourthPlace }),
       });
 
       if (res.ok) {
@@ -120,18 +152,6 @@ export default function AdminBonusPage() {
     byType[p.type].push(p);
   }
 
-  const typeLabels: Record<string, string> = {
-    CHAMPION: 'Campeao',
-    RUNNER_UP: 'Vice-campeao',
-    TOP_SCORER: 'Artilheiro',
-  };
-
-  const typePoints: Record<string, number> = {
-    CHAMPION: 20,
-    RUNNER_UP: 15,
-    TOP_SCORER: 15,
-  };
-
   const hasOverrides = Object.keys(overrides).length > 0;
 
   return (
@@ -163,7 +183,7 @@ export default function AdminBonusPage() {
       >
         <div>
           <label htmlFor="champion" className="block text-sm font-medium text-gray-700 mb-1">
-            Campeao
+            Campeao (120 pts)
           </label>
           <input
             id="champion"
@@ -177,7 +197,7 @@ export default function AdminBonusPage() {
 
         <div>
           <label htmlFor="runnerUp" className="block text-sm font-medium text-gray-700 mb-1">
-            Vice-campeao
+            Vice-campeao (80 pts)
           </label>
           <input
             id="runnerUp"
@@ -190,8 +210,36 @@ export default function AdminBonusPage() {
         </div>
 
         <div>
+          <label htmlFor="thirdPlace" className="block text-sm font-medium text-gray-700 mb-1">
+            Terceiro lugar (50 pts)
+          </label>
+          <input
+            id="thirdPlace"
+            type="text"
+            value={thirdPlace}
+            onChange={(e) => setThirdPlace(e.target.value)}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+            placeholder="Selecao terceiro lugar"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="fourthPlace" className="block text-sm font-medium text-gray-700 mb-1">
+            Quarto lugar (50 pts)
+          </label>
+          <input
+            id="fourthPlace"
+            type="text"
+            value={fourthPlace}
+            onChange={(e) => setFourthPlace(e.target.value)}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+            placeholder="Selecao quarto lugar"
+          />
+        </div>
+
+        <div>
           <label htmlFor="topScorer" className="block text-sm font-medium text-gray-700 mb-1">
-            Artilheiro
+            Artilheiro (80 pts)
           </label>
           <input
             id="topScorer"
@@ -222,17 +270,15 @@ export default function AdminBonusPage() {
             voce pode ajustar a pontuacao manualmente usando os botoes abaixo.
           </p>
 
-          {(['CHAMPION', 'RUNNER_UP', 'TOP_SCORER'] as const).map(type => {
+          {ALL_BONUS_TYPES.map(type => {
             const preds = byType[type] || [];
             if (preds.length === 0) return null;
+            const allowManualOverride = type === 'TOP_SCORER';
 
             return (
               <div key={type} className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                  {type === 'CHAMPION' && '🥇'}
-                  {type === 'RUNNER_UP' && '🥈'}
-                  {type === 'TOP_SCORER' && '⚽'}
-                  {typeLabels[type]} ({typePoints[type]} pts)
+                  {TYPE_ICONS[type]} {TYPE_LABELS[type]} ({TYPE_POINTS[type]} pts)
                 </h3>
                 <div className="space-y-1">
                   {preds.map(p => {
@@ -250,7 +296,7 @@ export default function AdminBonusPage() {
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-sm font-medium text-gray-700 truncate">{p.userName}</span>
-                          <span className="text-sm text-gray-500">→</span>
+                          <span className="text-sm text-gray-500">&rarr;</span>
                           <span className={`text-sm font-medium truncate ${isCorrect ? 'text-emerald-700' : 'text-gray-600'}`}>
                             {p.value}
                           </span>
@@ -264,10 +310,10 @@ export default function AdminBonusPage() {
                             </span>
                           )}
                           {/* Manual override buttons for top scorer */}
-                          {type === 'TOP_SCORER' && (
+                          {allowManualOverride && (
                             <div className="flex gap-1 ml-1">
                               <button
-                                onClick={() => handleOverride(p.id, typePoints[type])}
+                                onClick={() => handleOverride(p.id, TYPE_POINTS[type])}
                                 title="Marcar como correto"
                                 className={`w-6 h-6 rounded text-xs font-bold transition-colors ${
                                   isOverridden && overrideValue > 0
@@ -275,7 +321,7 @@ export default function AdminBonusPage() {
                                     : 'bg-gray-100 text-gray-500 hover:bg-emerald-100'
                                 }`}
                               >
-                                ✓
+                                &#10003;
                               </button>
                               <button
                                 onClick={() => handleOverride(p.id, 0)}
@@ -286,7 +332,7 @@ export default function AdminBonusPage() {
                                     : 'bg-gray-100 text-gray-500 hover:bg-red-100'
                                 }`}
                               >
-                                ✗
+                                &#10007;
                               </button>
                             </div>
                           )}

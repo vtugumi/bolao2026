@@ -9,6 +9,8 @@ interface BonusPrediction {
   champion?: string;
   runnerUp?: string;
   topScorer?: string;
+  thirdPlace?: string;
+  fourthPlace?: string;
   locked?: boolean;
 }
 
@@ -28,7 +30,23 @@ export default function BonusPredictionsPage() {
         const res = await fetch('/api/predictions/bonus');
         if (res.ok) {
           const data = await res.json();
-          setBonus(data.bonus || data || null);
+          // The API returns an array of BonusPrediction records
+          // Transform into a single object keyed by type
+          if (Array.isArray(data)) {
+            const bonusObj: BonusPrediction = {};
+            for (const item of data) {
+              switch (item.type) {
+                case 'CHAMPION': bonusObj.champion = item.value; break;
+                case 'RUNNER_UP': bonusObj.runnerUp = item.value; break;
+                case 'TOP_SCORER': bonusObj.topScorer = item.value; break;
+                case 'THIRD_PLACE': bonusObj.thirdPlace = item.value; break;
+                case 'FOURTH_PLACE': bonusObj.fourthPlace = item.value; break;
+              }
+            }
+            setBonus(bonusObj);
+          } else {
+            setBonus(data.bonus || data || null);
+          }
         }
       } catch (err) {
         console.error('Erro ao carregar palpites bonus:', err);
@@ -44,22 +62,40 @@ export default function BonusPredictionsPage() {
     champion: string;
     runnerUp: string;
     topScorer: string;
+    thirdPlace: string;
+    fourthPlace: string;
   }) => {
     setSaving(true);
     setMessage('');
     try {
-      const res = await fetch('/api/predictions/bonus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setBonus(result.bonus || result);
+      // Save each bonus type individually (the API expects one at a time)
+      const types = [
+        { type: 'CHAMPION', value: data.champion },
+        { type: 'RUNNER_UP', value: data.runnerUp },
+        { type: 'TOP_SCORER', value: data.topScorer },
+        { type: 'THIRD_PLACE', value: data.thirdPlace },
+        { type: 'FOURTH_PLACE', value: data.fourthPlace },
+      ];
+
+      let hasError = false;
+      for (const item of types) {
+        if (!item.value) continue; // skip empty values
+        const res = await fetch('/api/predictions/bonus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          setMessage(err.error || 'Erro ao salvar palpites bonus.');
+          hasError = true;
+          break;
+        }
+      }
+
+      if (!hasError) {
+        setBonus(data);
         setMessage('Palpites bonus salvos com sucesso!');
-      } else {
-        const err = await res.json();
-        setMessage(err.error || 'Erro ao salvar palpites bonus.');
       }
     } catch {
       setMessage('Erro ao salvar palpites bonus.');
@@ -90,7 +126,8 @@ export default function BonusPredictionsPage() {
         Palpites Bonus
       </h1>
       <p className="text-gray-500 mb-6">
-        Palpite o campeao, vice-campeao e artilheiro da Copa do Mundo 2026.
+        Palpite o campeao, vice-campeao, terceiro lugar, quarto lugar e artilheiro
+        da Copa do Mundo 2026.
         Esses palpites serao bloqueados apos o inicio do torneio.
       </p>
 
