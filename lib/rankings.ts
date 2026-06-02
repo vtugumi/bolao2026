@@ -14,7 +14,10 @@ interface RankedUser {
 
 export async function calculateRankings(userIds?: number[]): Promise<RankedUser[]> {
   const users = await prisma.user.findMany({
-    where: userIds ? { id: { in: userIds } } : undefined,
+    where: {
+      ...(userIds ? { id: { in: userIds } } : {}),
+      isAdmin: false, // Hide admin accounts from rankings
+    },
     include: {
       predictions: {
         where: { points: { not: null } },
