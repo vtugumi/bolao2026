@@ -14,24 +14,56 @@ interface BonusPrediction {
   locked?: boolean;
 }
 
+interface GroupBonusEntry {
+  userName: string;
+  value: string;
+  points: number | null;
+}
+
+interface GroupBonusData {
+  locked: boolean;
+  message?: string;
+  byType?: Record<string, GroupBonusEntry[]>;
+  missingUsers?: string[];
+  totalMembers?: number;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  CHAMPION: 'Campeao',
+  RUNNER_UP: 'Vice-campeao',
+  THIRD_PLACE: 'Terceiro lugar',
+  FOURTH_PLACE: 'Quarto lugar',
+  TOP_SCORER: 'Artilheiro',
+};
+
+const TYPE_POINTS: Record<string, number> = {
+  CHAMPION: 120,
+  RUNNER_UP: 80,
+  THIRD_PLACE: 50,
+  FOURTH_PLACE: 50,
+  TOP_SCORER: 80,
+};
+
+const TYPE_ORDER = ['CHAMPION', 'RUNNER_UP', 'THIRD_PLACE', 'FOURTH_PLACE', 'TOP_SCORER'];
+
 export default function BonusPredictionsPage() {
   const { user, loading: authLoading } = useAuth();
   const [bonus, setBonus] = useState<BonusPrediction | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [groupBonus, setGroupBonus] = useState<GroupBonusData | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) return;
 
-    const fetchBonus = async () => {
+    const fetchAll = async () => {
       try {
+        // Fetch user's own bonus predictions
         const res = await fetch('/api/predictions/bonus');
         if (res.ok) {
           const data = await res.json();
-          // The API returns an array of BonusPrediction records
-          // Transform into a single object keyed by type
           if (Array.isArray(data)) {
             const bonusObj: BonusPrediction = {};
             for (const item of data) {
@@ -48,6 +80,13 @@ export default function BonusPredictionsPage() {
             setBonus(data.bonus || data || null);
           }
         }
+
+        // Fetch group bonus predictions
+        const groupRes = await fetch('/api/predictions/bonus/group');
+        if (groupRes.ok) {
+          const groupData = await groupRes.json();
+          setGroupBonus(groupData);
+        }
       } catch (err) {
         console.error('Erro ao carregar palpites bonus:', err);
       } finally {
@@ -55,7 +94,7 @@ export default function BonusPredictionsPage() {
       }
     };
 
-    fetchBonus();
+    fetchAll();
   }, [user, authLoading]);
 
   const handleSave = async (data: {
@@ -68,7 +107,6 @@ export default function BonusPredictionsPage() {
     setSaving(true);
     setMessage('');
     try {
-      // Save each bonus type individually (the API expects one at a time)
       const types = [
         { type: 'CHAMPION', value: data.champion },
         { type: 'RUNNER_UP', value: data.runnerUp },
@@ -79,7 +117,7 @@ export default function BonusPredictionsPage() {
 
       let hasError = false;
       for (const item of types) {
-        if (!item.value) continue; // skip empty values
+        if (!item.value) continue;
         const res = await fetch('/api/predictions/bonus', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -120,22 +158,19 @@ export default function BonusPredictionsPage() {
     );
   }
 
+  const isLocked = groupBonus?.locked === true;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <h1 className="text-2xl md:text-3xl font-bold text-emerald-800 mb-2">
         Palpites Bonus
       </h1>
       <p className="text-gray-500 mb-6">
-        Palpite o campeao, vice-campeao, terceiro lugar, quarto lugar e artilheiro
-        da Copa do Mundo 2026.
-        Esses palpites serao bloqueados apos o inicio do torneio.
+        {isLocked
+          ? 'Os palpites bonus estao bloqueados. Veja o que cada um palpitou!'
+          : 'Palpite o campeao, vice-campeao, terceiro lugar, quarto lugar e artilheiro da Copa do Mundo 2026. Esses palpites serao bloqueados apos o inicio do torneio.'
+        }
       </p>
-
-      {bonus?.locked && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg mb-6 text-sm">
-          Os palpites bonus estao bloqueados. Nao e possivel alterar.
-        </div>
-      )}
 
       {message && (
         <div
@@ -149,12 +184,81 @@ export default function BonusPredictionsPage() {
         </div>
       )}
 
-      <BonusPredictionForm
-        initialData={bonus || undefined}
-        onSave={handleSave}
-        saving={saving}
-        locked={bonus?.locked || false}
-      />
+      {/* User's own form (only when not locked) */}
+      {!isLocked && (
+        <BonusPredictionForm
+          initialData={bonus || undefined}
+          onSave={handleSave}
+          saving={saving}
+          locked={false}
+        />
+      )}
+
+      {/* Group predictions (only when locked / Copa started) */}
+      {isLocked && groupBonus?.byType && (
+        <div className="space-y-6">
+          {TYPE_ORDER.map(type => {
+            const entries = groupBonus.byType?.[type] || [];
+            if (entries.length === 0) return null;
+
+            // Count most popular picks
+            const counts: Record<string, number> = {};
+            entries.forEach(e => {
+              const key = e.value.trim();
+              counts[key] = (counts[key] || 0) + 1;
+            });
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+            return (
+              <div key={type} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 className="font-bold text-emerald-700 mb-1">
+                  {TYPE_LABELS[type]}
+                  <span className="text-amber-600 font-normal text-sm ml-2">({TYPE_POINTS[type]} pts)</span>
+                </h3>
+
+                {/* Most popular */}
+                {sorted.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {sorted.slice(0, 3).map(([value, count]) => (
+                      <span key={value} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
+                        {value} ({count}x)
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Individual predictions */}
+                <div className="space-y-1">
+                  {entries.map((e, i) => (
+                    <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50">
+                      <span className="text-sm text-gray-700">{e.userName}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">{e.value}</span>
+                        {e.points !== null && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            e.points > 0 ? 'bg-emerald-200 text-emerald-800' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {e.points} pts
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Users who didn't predict */}
+          {groupBonus.missingUsers && groupBonus.missingUsers.length > 0 && (
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+              <p className="text-sm text-gray-500">
+                Nao fizeram palpites bonus: {groupBonus.missingUsers.join(', ')}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
