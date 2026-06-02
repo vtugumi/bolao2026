@@ -19,10 +19,18 @@ export async function POST(request: NextRequest) {
     const target = await prisma.user.findUnique({ where: { id: userId } })
     if (!target) return NextResponse.json({ error: 'Usuario nao encontrado.' }, { status: 404 })
 
-    // Delete in order: predictions, bonus, group members, then user
+    // Delete in order: predictions, bonus, group members, owned groups' members, owned groups, then user
     await prisma.prediction.deleteMany({ where: { userId } })
     await prisma.bonusPrediction.deleteMany({ where: { userId } })
     await prisma.groupMember.deleteMany({ where: { userId } })
+
+    // Delete groups created by this user (and their members first)
+    const ownedGroups = await prisma.privateGroup.findMany({ where: { creatorId: userId } })
+    for (const g of ownedGroups) {
+      await prisma.groupMember.deleteMany({ where: { groupId: g.id } })
+      await prisma.privateGroup.delete({ where: { id: g.id } })
+    }
+
     await prisma.user.delete({ where: { id: userId } })
 
     return NextResponse.json({ message: `Usuario "${target.name}" deletado com sucesso.` })
