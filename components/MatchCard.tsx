@@ -165,7 +165,10 @@ export default function MatchCard({ match, showPrediction, onSavePrediction }: M
             {match.groupLabel ? ` - Grupo ${match.groupLabel}` : ''}
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">{formatDate(match.dateTime)}</span>
+            <span className="text-xs text-gray-500">
+              {formatDate(match.dateTime)}
+              {match.venue && <span className="text-gray-400"> · {match.venue}</span>}
+            </span>
             {canExpand && (
               <span className={`text-gray-400 transition-transform text-xs ${expanded ? 'rotate-180' : ''}`}>
                 ▼
