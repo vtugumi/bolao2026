@@ -194,7 +194,7 @@ export default function JogosPage() {
         ) : (
           /* === MATA-MATA: simulacao + bracket + jogos === */
           <div className="space-y-6">
-            {user && <SimulatedR32 />}
+            {user && selectedStage === 'R32' && <SimulatedR32 />}
             <KnockoutBracket activeStage={selectedStage} onMatchClick={(_matchId, stage) => setSelectedStage(stage)} />
             <div className="max-w-3xl mx-auto space-y-4">
               {loading ? (
