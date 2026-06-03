@@ -157,7 +157,8 @@ export async function POST(request: NextRequest) {
 
       if (match.stage === 'GROUP' && match.homeTeam && match.awayTeam) {
         const key = `${match.homeTeam.code}-${match.awayTeam.code}`
-        venue = GROUP_VENUES[key] || null
+        const reverseKey = `${match.awayTeam.code}-${match.homeTeam.code}`
+        venue = GROUP_VENUES[key] || GROUP_VENUES[reverseKey] || null
         if (!venue) {
           missing.push(`#${match.matchNumber} ${key}`)
         }
