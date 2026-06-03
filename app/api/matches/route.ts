@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
             }
           : {}),
       },
-      orderBy: { matchNumber: 'asc' },
+      orderBy: { dateTime: 'asc' },
     })
 
     const result = matches.map((match) => {
