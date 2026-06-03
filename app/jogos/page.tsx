@@ -194,7 +194,7 @@ export default function JogosPage() {
         ) : (
           /* === MATA-MATA: simulacao + bracket + jogos === */
           <div className="space-y-6">
-            {user && selectedStage === 'R32' && <SimulatedR32 />}
+            {/* SimulatedR32 removido - times simulados já aparecem nos cards */}
             <KnockoutBracket activeStage={selectedStage} onMatchClick={(_matchId, stage) => setSelectedStage(stage)} />
             <div className="max-w-3xl mx-auto space-y-4">
               {loading ? (
