@@ -5,7 +5,6 @@ import { getSessionUser } from '@/lib/auth'
 const API_BASE = 'https://api.football-data.org/v4'
 
 interface ApiMatch {
-  id: number
   utcDate: string
   stage: string
   group: string | null
@@ -23,12 +22,6 @@ const STAGE_MAP: Record<string, string> = {
   'FINAL': 'FINAL',
 }
 
-// Venue mapping based on official FIFA schedule
-// Mapped by UTC date to city/stadium
-const VENUE_MAP: Record<string, string> = {
-  // We'll match by the combination of stage + order within stage
-}
-
 export async function POST(request: NextRequest) {
   try {
     const user = await getSessionUser(request)
@@ -38,7 +31,6 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.FOOTBALL_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'FOOTBALL_API_KEY nao configurada.' }, { status: 500 })
 
-    // Fetch all matches from API
     const res = await fetch(`${API_BASE}/competitions/WC/matches?season=2026`, {
       headers: { 'X-Auth-Token': apiKey },
     })
@@ -53,41 +45,79 @@ export async function POST(request: NextRequest) {
     // Get all our matches with teams
     const ourMatches = await prisma.match.findMany({
       include: {
-        homeTeam: { select: { code: true } },
-        awayTeam: { select: { code: true } },
+        homeTeam: { select: { id: true, code: true } },
+        awayTeam: { select: { id: true, code: true } },
       },
       orderBy: { matchNumber: 'asc' },
     })
 
+    // Build team code → ID mapping
+    const allTeams = await prisma.team.findMany()
+    const teamByCode = new Map(allTeams.map(t => [t.code, t.id]))
+
     const updated: string[] = []
+    const swapped: string[] = []
     const notFound: string[] = []
 
-    // For group matches: match by home team code + away team code
+    // GROUP MATCHES: match by team pair (regardless of home/away order)
     const groupApiMatches = apiMatches.filter(m => m.stage === 'GROUP_STAGE')
     const ourGroupMatches = ourMatches.filter(m => m.stage === 'GROUP')
+    const usedApiIds = new Set<number>()
 
     for (const ourMatch of ourGroupMatches) {
       if (!ourMatch.homeTeam || !ourMatch.awayTeam) continue
+      const ourHome = ourMatch.homeTeam.code
+      const ourAway = ourMatch.awayTeam.code
 
-      const apiMatch = groupApiMatches.find(am =>
-        am.homeTeam?.tla === ourMatch.homeTeam!.code &&
-        am.awayTeam?.tla === ourMatch.awayTeam!.code
+      // Try exact match first
+      let apiMatch = groupApiMatches.find((am, idx) =>
+        !usedApiIds.has(idx) &&
+        am.homeTeam?.tla === ourHome &&
+        am.awayTeam?.tla === ourAway
       )
+      let apiIdx = apiMatch ? groupApiMatches.indexOf(apiMatch) : -1
+      let needSwap = false
 
-      if (apiMatch) {
+      // Try reversed match
+      if (!apiMatch) {
+        apiMatch = groupApiMatches.find((am, idx) =>
+          !usedApiIds.has(idx) &&
+          am.homeTeam?.tla === ourAway &&
+          am.awayTeam?.tla === ourHome
+        )
+        apiIdx = apiMatch ? groupApiMatches.indexOf(apiMatch) : -1
+        needSwap = !!apiMatch
+      }
+
+      if (apiMatch && apiIdx >= 0) {
+        usedApiIds.add(apiIdx)
+
+        const updateData: Record<string, unknown> = {
+          dateTime: new Date(apiMatch.utcDate),
+        }
+
+        // Swap home/away to match FIFA schedule
+        if (needSwap) {
+          const apiHomeId = teamByCode.get(apiMatch.homeTeam!.tla)
+          const apiAwayId = teamByCode.get(apiMatch.awayTeam!.tla)
+          if (apiHomeId && apiAwayId) {
+            updateData.homeTeamId = apiHomeId
+            updateData.awayTeamId = apiAwayId
+            swapped.push(`#${ourMatch.matchNumber} ${ourHome}↔${ourAway} → ${apiMatch.homeTeam!.tla} vs ${apiMatch.awayTeam!.tla}`)
+          }
+        }
+
         await prisma.match.update({
           where: { id: ourMatch.id },
-          data: {
-            dateTime: new Date(apiMatch.utcDate),
-          },
+          data: updateData,
         })
-        updated.push(`#${ourMatch.matchNumber} ${ourMatch.homeTeam.code} vs ${ourMatch.awayTeam.code} → ${apiMatch.utcDate}`)
+        updated.push(`#${ourMatch.matchNumber} ${apiMatch.homeTeam?.tla} vs ${apiMatch.awayTeam?.tla} → ${apiMatch.utcDate}`)
       } else {
-        notFound.push(`#${ourMatch.matchNumber} ${ourMatch.homeTeam.code} vs ${ourMatch.awayTeam.code}`)
+        notFound.push(`#${ourMatch.matchNumber} ${ourHome} vs ${ourAway}`)
       }
     }
 
-    // For knockout matches: match by stage + order within stage
+    // KNOCKOUT MATCHES: match by stage + chronological order
     const knockoutStages = ['R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
 
     for (const stage of knockoutStages) {
@@ -106,15 +136,16 @@ export async function POST(request: NextRequest) {
             dateTime: new Date(apiStageMatches[i].utcDate),
           },
         })
-        updated.push(`#${ourStageMatches[i].matchNumber} ${stage}[${i+1}] → ${apiStageMatches[i].utcDate}`)
+        updated.push(`#${ourStageMatches[i].matchNumber} ${stage}[${i + 1}] → ${apiStageMatches[i].utcDate}`)
       }
     }
 
     return NextResponse.json({
-      message: `${updated.length} jogos atualizados`,
+      message: `${updated.length} jogos atualizados, ${swapped.length} invertidos (home/away)`,
       updated: updated.length,
+      swapped: swapped.length,
       notFound: notFound.length,
-      details: updated.slice(0, 20),
+      swappedDetails: swapped,
       missing: notFound,
     })
   } catch (error) {
