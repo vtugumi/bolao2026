@@ -18,7 +18,11 @@ const GROUP_VENUES: Record<string, string> = {
   'CAN-BIH': 'BMO Field, Toronto',
   'SUI-QAT': 'Gillette Stadium, Boston',
   'QAT-CAN': 'BMO Field, Toronto',
+  'CAN-QAT': 'BMO Field, Toronto',
   'BIH-SUI': 'AT&T Stadium, Dallas',
+  'BIH-QAT': 'MetLife Stadium, Nova York',
+  'SUI-BIH': 'AT&T Stadium, Dallas',
+  'QAT-SUI': 'Gillette Stadium, Boston',
   'SUI-CAN': 'Mercedes-Benz Stadium, Atlanta',
   'QAT-BIH': 'MetLife Stadium, Nova York',
   // GROUP C
@@ -30,6 +34,8 @@ const GROUP_VENUES: Record<string, string> = {
   'SCO-MAR': 'Lincoln Financial Field, Filadelfia',
   // GROUP D
   'USA-PAR': 'AT&T Stadium, Dallas',
+  'AUS-TUR': 'BC Place, Vancouver',
+  'PAR-AUS': 'BBVA Stadium, Monterrey',
   'TUR-AUS': 'BC Place, Vancouver',
   'USA-AUS': 'SoFi Stadium, Los Angeles',
   'TUR-PAR': 'Lumen Field, Seattle',
@@ -44,6 +50,8 @@ const GROUP_VENUES: Record<string, string> = {
   'CUW-CIV': 'Arrowhead Stadium, Kansas City',
   // GROUP F
   'NED-JPN': 'Hard Rock Stadium, Miami',
+  'JPN-SWE': 'Levi\'s Stadium, San Francisco',
+  'TUN-NED': 'BBVA Stadium, Monterrey',
   'SWE-TUN': 'Arrowhead Stadium, Kansas City',
   'NED-SWE': 'NRG Stadium, Houston',
   'TUN-JPN': 'Lumen Field, Seattle',
@@ -51,7 +59,9 @@ const GROUP_VENUES: Record<string, string> = {
   'TUN-SWE': 'BBVA Stadium, Monterrey',
   // GROUP G
   'BEL-IRN': 'Estadio Azteca, Cidade do Mexico',
+  'BEL-EGY': 'Arrowhead Stadium, Kansas City',
   'NZL-EGY': 'BC Place, Vancouver',
+  'NZL-BEL': 'BMO Field, Toronto',
   'BEL-NZL': 'BMO Field, Toronto',
   'EGY-IRN': 'Estadio Azteca, Cidade do Mexico',
   'IRN-NZL': 'Lumen Field, Seattle',
