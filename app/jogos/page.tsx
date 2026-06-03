@@ -9,6 +9,7 @@ import StageNav from '@/components/StageNav';
 import GroupStandingsTable from '@/components/GroupStandingsTable';
 import KnockoutBracket from '@/components/KnockoutBracket';
 import BonusSection from '@/components/BonusSection';
+import SimulatedR32 from '@/components/SimulatedR32';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -161,8 +162,9 @@ export default function JogosPage() {
             </div>
           </div>
         ) : (
-          /* === MATA-MATA: bracket em cima, jogos embaixo === */
+          /* === MATA-MATA: simulacao + bracket + jogos === */
           <div className="space-y-6">
+            {user && <SimulatedR32 />}
             <KnockoutBracket activeStage={selectedStage} onMatchClick={(_matchId, stage) => setSelectedStage(stage)} />
             <div className="max-w-3xl mx-auto space-y-4">
               {loading ? (
