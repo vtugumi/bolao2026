@@ -10,30 +10,29 @@ export async function GET(request: NextRequest) {
 
     const predictions = await prisma.prediction.findMany({
       include: {
-        user: { select: { id: true, name: true } },
+        user: { select: { name: true } },
         match: {
-          select: { matchNumber: true, stage: true, groupLabel: true },
-          include: { homeTeam: { select: { name: true } }, awayTeam: { select: { name: true } } },
+          select: {
+            matchNumber: true, groupLabel: true,
+            homeTeam: { select: { name: true, code: true } },
+            awayTeam: { select: { name: true, code: true } },
+          },
         },
       },
-      orderBy: [{ userId: 'asc' }, { matchId: 'asc' }],
+      orderBy: { id: 'asc' },
     })
 
     return NextResponse.json({
       total: predictions.length,
       predictions: predictions.map(p => ({
-        id: p.id,
         userName: p.user.name,
-        matchNumber: p.match.matchNumber,
+        match: `#${p.match.matchNumber} ${p.match.homeTeam?.code || '?'} vs ${p.match.awayTeam?.code || '?'}`,
+        prediction: `${p.homeScore}-${p.awayScore}`,
         group: p.match.groupLabel,
-        home: p.match.homeTeam?.name,
-        away: p.match.awayTeam?.name,
-        homeScore: p.homeScore,
-        awayScore: p.awayScore,
       })),
     })
   } catch (error) {
     console.error('Erro:', error)
-    return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno.', detail: String(error) }, { status: 500 })
   }
 }
