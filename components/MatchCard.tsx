@@ -46,12 +46,15 @@ function isKnockout(stage: string): boolean {
 
 export default function MatchCard({ match, showPrediction, onSavePrediction }: MatchCardProps) {
   const pred = match.userPrediction || match.prediction || null;
+  const isSimulatedHome = match.homeTeam?.simulated === true;
+  const isSimulatedAway = match.awayTeam?.simulated === true;
+  const isSimulated = isSimulatedHome || isSimulatedAway;
   const homeName = match.homeTeam?.name ?? 'A definir';
   const awayName = match.awayTeam?.name ?? 'A definir';
   const homeFlag = match.homeTeam?.flagEmoji ?? '';
   const awayFlag = match.awayTeam?.flagEmoji ?? '';
-  const homeId = match.homeTeam?.id;
-  const awayId = match.awayTeam?.id;
+  const homeId = match.homeTeam?.id || match.simulatedHomeTeamId;
+  const awayId = match.awayTeam?.id || match.simulatedAwayTeamId;
 
   const [homeGoals, setHomeGoals] = useState(pred?.homeScore?.toString() ?? '');
   const [awayGoals, setAwayGoals] = useState(pred?.awayScore?.toString() ?? '');
@@ -153,7 +156,7 @@ export default function MatchCard({ match, showPrediction, onSavePrediction }: M
   const canExpand = matchStarted || hasResult;
 
   return (
-    <div id={`match-card-${match.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow transition-[box-shadow,ring]">
+    <div id={`match-card-${match.id}`} className={`rounded-xl shadow-sm hover:shadow-md transition-shadow transition-[box-shadow,ring] ${isSimulated ? 'bg-amber-50 border-2 border-amber-300' : 'bg-white border border-gray-100'}`}>
       {/* Main card area - clickable when match started */}
       <div
         className={`p-4 ${canExpand ? 'cursor-pointer' : ''}`}
@@ -180,7 +183,8 @@ export default function MatchCard({ match, showPrediction, onSavePrediction }: M
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 text-center">
             <Flag code={match.homeTeam?.code || ''} emoji={homeFlag} size={32} />
-            <p className="text-sm font-medium mt-1 truncate">{homeName}</p>
+            <p className={`text-sm font-medium mt-1 truncate ${isSimulatedHome ? 'text-amber-700' : ''}`}>{homeName}</p>
+            {isSimulatedHome && <p className="text-[9px] text-amber-500">{match.homeTeam?.source}</p>}
           </div>
 
           <div className="flex-shrink-0 text-center min-w-[120px]">
@@ -219,7 +223,8 @@ export default function MatchCard({ match, showPrediction, onSavePrediction }: M
 
           <div className="flex-1 text-center">
             <Flag code={match.awayTeam?.code || ''} emoji={awayFlag} size={32} />
-            <p className="text-sm font-medium mt-1 truncate">{awayName}</p>
+            <p className={`text-sm font-medium mt-1 truncate ${isSimulatedAway ? 'text-amber-700' : ''}`}>{awayName}</p>
+            {isSimulatedAway && <p className="text-[9px] text-amber-500">{match.awayTeam?.source}</p>}
           </div>
         </div>
 
@@ -294,7 +299,7 @@ export default function MatchCard({ match, showPrediction, onSavePrediction }: M
       )}
 
       {/* Prediction input - only before match starts */}
-      {!matchStarted && !hasResult && showPrediction && onSavePrediction && (
+      {!matchStarted && !hasResult && showPrediction && onSavePrediction && homeId && awayId && (
         <div className="px-4 pb-4 pt-0">
           <div className="pt-4 border-t border-gray-100">
             {timeUntilStart > 0 && timeUntilStart < 3600000 && (

@@ -86,25 +86,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Para mata-mata: determinar o classificado automaticamente
+    // Aceita simulatedHomeTeamId/simulatedAwayTeamId quando times oficiais nao estao definidos
+    const { simulatedHomeTeamId, simulatedAwayTeamId } = body
+    const effectiveHome = match.homeTeamId || simulatedHomeTeamId || null
+    const effectiveAway = match.awayTeamId || simulatedAwayTeamId || null
+
     let effectiveWinnerId = winnerId || null
     if (match.stage !== 'GROUP') {
+      if (!effectiveHome || !effectiveAway) {
+        // Times nao definidos (nem reais nem simulados) - nao pode palpitar
+        return NextResponse.json(
+          { error: 'Os times desta partida ainda nao foram definidos.' },
+          { status: 400 }
+        )
+      }
+
       if (homeScore > awayScore) {
-        // Mandante vence -> classificado automatico
-        effectiveWinnerId = match.homeTeamId
+        effectiveWinnerId = effectiveHome
       } else if (awayScore > homeScore) {
-        // Visitante vence -> classificado automatico
-        effectiveWinnerId = match.awayTeamId
+        effectiveWinnerId = effectiveAway
       } else {
         // Empate -> usuario precisa escolher quem passa nos penaltis
         if (!effectiveWinnerId) {
           return NextResponse.json(
             { error: 'Empate! Informe quem se classifica nos penaltis.' },
-            { status: 400 }
-          )
-        }
-        if (effectiveWinnerId !== match.homeTeamId && effectiveWinnerId !== match.awayTeamId) {
-          return NextResponse.json(
-            { error: 'O classificado deve ser um dos times da partida.' },
             { status: 400 }
           )
         }

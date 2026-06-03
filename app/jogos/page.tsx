@@ -23,6 +23,7 @@ export default function JogosPage() {
   const [isSimulated, setIsSimulated] = useState(false);
   const [predictedCount, setPredictedCount] = useState(0);
   const [totalGroupMatches, setTotalGroupMatches] = useState(0);
+  const [simulatedKnockout, setSimulatedKnockout] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchMatches = useCallback(async () => {
@@ -81,25 +82,54 @@ export default function JogosPage() {
     fetchStandings();
   }, [fetchStandings]);
 
+  // Fetch simulated knockout data when in knockout tab
+  const fetchSimulatedKnockout = useCallback(async () => {
+    if (activeTab !== 'knockout' || !user) return;
+    try {
+      const res = await fetch('/api/predictions/simulated-bracket');
+      if (res.ok) {
+        const data = await res.json();
+        setSimulatedKnockout(data.allKnockout || []);
+      }
+    } catch {
+      setSimulatedKnockout([]);
+    }
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    fetchSimulatedKnockout();
+  }, [fetchSimulatedKnockout]);
+
   useEffect(() => {
     fetchMatches();
   }, [fetchMatches]);
 
   const handleSavePrediction = async (
     matchId: number,
-    data: { homeScore: number; awayScore: number; winnerId?: number }
+    data: { homeScore: number; awayScore: number; winnerId?: number; simulatedHomeTeamId?: number; simulatedAwayTeamId?: number }
   ) => {
     try {
+      // Find the match to check if it has simulated teams
+      const match = matches.find((m: any) => m.id === matchId);
+      const simMatch = simulatedKnockout.find((s: any) => s.matchNumber === match?.matchNumber);
+      const body: any = { matchId, ...data };
+      if (simMatch && !match?.homeTeam?.id) {
+        if (simMatch.homeTeam) body.simulatedHomeTeamId = simMatch.homeTeam.id;
+        if (simMatch.awayTeam) body.simulatedAwayTeamId = simMatch.awayTeam.id;
+      }
+
       const res = await fetch('/api/predictions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId, ...data }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         await fetchMatches();
-        // Refresh standings too
+        // Refresh standings/simulated data
         if (activeTab === 'groups') {
           await fetchStandings();
+        } else {
+          await fetchSimulatedKnockout();
         }
       }
     } catch (err) {
@@ -172,9 +202,22 @@ export default function JogosPage() {
               ) : matches.length === 0 ? (
                 <p className="text-center text-gray-500 py-12">Nenhum jogo encontrado.</p>
               ) : (
-                matches.map((match: any) => (
-                  <MatchCard key={match.id} match={match} showPrediction={!!user} onSavePrediction={handleSavePrediction} />
-                ))
+                matches.map((match: any) => {
+                  // Overlay simulated teams when real teams aren't set
+                  const simMatch = simulatedKnockout.find((s: any) => s.matchNumber === match.matchNumber);
+                  const enrichedMatch = { ...match };
+                  if (simMatch) {
+                    if (!match.homeTeam && simMatch.homeTeam) {
+                      enrichedMatch.homeTeam = { ...simMatch.homeTeam, simulated: true };
+                      enrichedMatch.simulatedHomeTeamId = simMatch.homeTeam.id;
+                    }
+                    if (!match.awayTeam && simMatch.awayTeam) {
+                      enrichedMatch.awayTeam = { ...simMatch.awayTeam, simulated: true };
+                      enrichedMatch.simulatedAwayTeamId = simMatch.awayTeam.id;
+                    }
+                  }
+                  return <MatchCard key={match.id} match={enrichedMatch} showPrediction={!!user} onSavePrediction={handleSavePrediction} />;
+                })
               )}
             </div>
           </div>

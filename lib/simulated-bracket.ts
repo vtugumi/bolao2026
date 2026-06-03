@@ -215,6 +215,96 @@ export async function calculateSimulatedBracket(userId: number) {
     })
   }
 
+  // === KNOCKOUT PROPAGATION ===
+  // Get all knockout matches with user predictions
+  const knockoutMatches = await prisma.match.findMany({
+    where: { stage: { not: 'GROUP' } },
+    include: {
+      predictions: { where: { userId }, take: 1 },
+    },
+    orderBy: { matchNumber: 'asc' },
+  })
+
+  // Build a map of simulated teams per match (matchNumber → { home, away })
+  const simulatedTeams = new Map<number, { home: SimulatedQualifier['homeTeam']; away: SimulatedQualifier['awayTeam'] }>()
+
+  // Seed R32 with group qualifiers
+  for (const r32 of simulatedR32) {
+    simulatedTeams.set(r32.matchNumber, { home: r32.homeTeam, away: r32.awayTeam })
+  }
+
+  // Import bracket mapping
+  const { KNOCKOUT_BRACKET, THIRD_PLACE_BRACKET } = await import('./knockout-bracket')
+
+  // Process knockout matches in order, propagating winners
+  const allKnockout: SimulatedQualifier[] = []
+
+  for (const match of knockoutMatches) {
+    // Get simulated teams for this match (set from R32 or propagated from previous round)
+    const simTeams = simulatedTeams.get(match.matchNumber)
+    const homeTeam = simTeams?.home || null
+    const awayTeam = simTeams?.away || null
+
+    // Check if real teams are set (overrides simulation)
+    let finalHome = homeTeam
+    let finalAway = awayTeam
+    if (match.homeTeamId) {
+      const t = allTeams.find(x => x.id === match.homeTeamId)
+      if (t) finalHome = { id: t.id, name: t.name, code: t.code, flagEmoji: t.flagEmoji, source: 'oficial' }
+    }
+    if (match.awayTeamId) {
+      const t = allTeams.find(x => x.id === match.awayTeamId)
+      if (t) finalAway = { id: t.id, name: t.name, code: t.code, flagEmoji: t.flagEmoji, source: 'oficial' }
+    }
+
+    allKnockout.push({
+      matchNumber: match.matchNumber,
+      homeTeam: finalHome,
+      awayTeam: finalAway,
+    })
+
+    // Determine winner from real result or user prediction
+    let winnerId: number | null = null
+
+    if (match.homeScore !== null && match.awayScore !== null && match.winnerId) {
+      // Real result
+      winnerId = match.winnerId
+    } else if (match.predictions?.length > 0 && finalHome && finalAway) {
+      // User prediction
+      const pred = match.predictions[0]
+      if (pred.winnerId) {
+        winnerId = pred.winnerId
+      } else if (pred.homeScore > pred.awayScore) {
+        winnerId = finalHome.id
+      } else if (pred.awayScore > pred.homeScore) {
+        winnerId = finalAway.id
+      }
+    }
+
+    // Propagate winner to next match
+    if (winnerId && finalHome && finalAway) {
+      const winnerTeam = winnerId === finalHome.id ? finalHome : finalAway
+      const loserTeam = winnerId === finalHome.id ? finalAway : finalHome
+
+      const bracketEntry = KNOCKOUT_BRACKET[match.matchNumber]
+      if (bracketEntry) {
+        const nextSim = simulatedTeams.get(bracketEntry.nextMatch) || { home: null, away: null }
+        if (bracketEntry.slot === 'home') nextSim.home = { ...winnerTeam, source: `venc. #${match.matchNumber}` }
+        else nextSim.away = { ...winnerTeam, source: `venc. #${match.matchNumber}` }
+        simulatedTeams.set(bracketEntry.nextMatch, nextSim)
+      }
+
+      // SF losers go to 3rd place match
+      const thirdEntry = THIRD_PLACE_BRACKET[match.matchNumber]
+      if (thirdEntry) {
+        const nextSim = simulatedTeams.get(thirdEntry.nextMatch) || { home: null, away: null }
+        if (thirdEntry.slot === 'home') nextSim.home = { ...loserTeam, source: `perd. SF` }
+        else nextSim.away = { ...loserTeam, source: `perd. SF` }
+        simulatedTeams.set(thirdEntry.nextMatch, nextSim)
+      }
+    }
+  }
+
   return {
     standings: Object.fromEntries(allStandings),
     qualifiedThirds: qualifiedThirds.map(t => ({
@@ -223,6 +313,7 @@ export async function calculateSimulatedBracket(userId: number) {
       points: t.points, goalDifference: t.goalDifference, goalsFor: t.goalsFor,
     })),
     simulatedR32,
+    allKnockout,
     totalPredictions: groupMatches.reduce((sum, m) => sum + (m.predictions?.length || 0), 0),
     totalGroupMatches: groupMatches.length,
   }
