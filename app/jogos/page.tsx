@@ -19,6 +19,9 @@ export default function JogosPage() {
   const [selectedStage, setSelectedStage] = useState('R32');
   const [matches, setMatches] = useState<any[]>([]);
   const [standings, setStandings] = useState<any[]>([]);
+  const [isSimulated, setIsSimulated] = useState(false);
+  const [predictedCount, setPredictedCount] = useState(0);
+  const [totalGroupMatches, setTotalGroupMatches] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchMatches = useCallback(async () => {
@@ -44,13 +47,38 @@ export default function JogosPage() {
   }, [activeTab, selectedGroup, selectedStage]);
 
   // Fetch group standings when in groups tab
-  useEffect(() => {
+  // If user is logged in, use simulated standings (predictions + real results)
+  const fetchStandings = useCallback(async () => {
     if (activeTab !== 'groups') return;
-    fetch(`/api/groups/${selectedGroup}`)
-      .then(r => r.json())
-      .then(data => setStandings(Array.isArray(data) ? data : []))
-      .catch(() => setStandings([]));
-  }, [activeTab, selectedGroup]);
+    try {
+      if (user) {
+        // Use simulated endpoint (blends real results + user predictions)
+        const res = await fetch(`/api/groups/${selectedGroup}/simulated`);
+        if (res.ok) {
+          const data = await res.json();
+          setStandings(data.standings || []);
+          setIsSimulated(data.isSimulated || false);
+          setPredictedCount(data.predictedCount || 0);
+          setTotalGroupMatches(data.totalMatches || 0);
+          return;
+        }
+      }
+      // Fallback to official standings
+      const res = await fetch(`/api/groups/${selectedGroup}`);
+      if (res.ok) {
+        const data = await res.json();
+        setStandings(Array.isArray(data) ? data : []);
+        setIsSimulated(false);
+      }
+    } catch {
+      setStandings([]);
+      setIsSimulated(false);
+    }
+  }, [activeTab, selectedGroup, user]);
+
+  useEffect(() => {
+    fetchStandings();
+  }, [fetchStandings]);
 
   useEffect(() => {
     fetchMatches();
@@ -70,8 +98,7 @@ export default function JogosPage() {
         await fetchMatches();
         // Refresh standings too
         if (activeTab === 'groups') {
-          const sr = await fetch(`/api/groups/${selectedGroup}`);
-          if (sr.ok) setStandings(await sr.json());
+          await fetchStandings();
         }
       }
     } catch (err) {
@@ -123,7 +150,13 @@ export default function JogosPage() {
             </div>
             <div className="lg:col-span-2">
               <div className="sticky top-4">
-                <GroupStandingsTable standings={standings} groupLabel={selectedGroup} />
+                <GroupStandingsTable
+                  standings={standings}
+                  groupLabel={selectedGroup}
+                  isSimulated={isSimulated}
+                  predictedCount={predictedCount}
+                  totalMatches={totalGroupMatches}
+                />
               </div>
             </div>
           </div>

@@ -18,6 +18,9 @@ interface TeamStanding {
 interface GroupStandingsTableProps {
   standings: TeamStanding[];
   groupLabel?: string;
+  isSimulated?: boolean;
+  predictedCount?: number;
+  totalMatches?: number;
 }
 
 function getPositionStyle(index: number): string {
@@ -26,12 +29,19 @@ function getPositionStyle(index: number): string {
   return 'border-l-4 border-l-transparent';
 }
 
-export default function GroupStandingsTable({ standings, groupLabel }: GroupStandingsTableProps) {
+export default function GroupStandingsTable({ standings, groupLabel, isSimulated, predictedCount, totalMatches }: GroupStandingsTableProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className={`bg-white rounded-xl shadow-sm overflow-hidden ${isSimulated ? 'border-2 border-amber-300' : 'border border-gray-100'}`}>
       {groupLabel && (
-        <div className="px-4 py-3 bg-emerald-800 text-white font-semibold">
-          Grupo {groupLabel}
+        <div className={`px-4 py-3 font-semibold ${isSimulated ? 'bg-amber-600 text-white' : 'bg-emerald-800 text-white'}`}>
+          <div className="flex items-center justify-between">
+            <span>Grupo {groupLabel}</span>
+            {isSimulated && (
+              <span className="text-xs font-normal opacity-90">
+                Sua simulacao ({predictedCount}/{totalMatches} palpites)
+              </span>
+            )}
+          </div>
         </div>
       )}
 
