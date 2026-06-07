@@ -95,7 +95,9 @@ export default function LoginPage() {
             </Link>
           </p>
           <p className="text-center text-xs text-gray-400">
-            Esqueceu a senha? Fale com o administrador do bolao.
+            <Link href="/reset-password" className="text-emerald-600 hover:underline">
+              Esqueceu a senha?
+            </Link>
           </p>
         </form>
       </div>

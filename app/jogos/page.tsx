@@ -124,12 +124,18 @@ export default function JogosPage() {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        await fetchMatches();
-        // Standings refresh with delay to not block the UI
+        const savedPrediction = await res.json();
+        // Update only the affected match locally (no full refetch)
+        setMatches(prev => prev.map((m: any) =>
+          m.id === matchId
+            ? { ...m, userPrediction: savedPrediction }
+            : m
+        ));
+        // Refresh standings in background (doesn't block UI)
         if (activeTab === 'groups') {
-          setTimeout(() => fetchStandings(), 500);
+          setTimeout(() => fetchStandings(), 800);
         } else {
-          setTimeout(() => fetchSimulatedKnockout(), 500);
+          setTimeout(() => fetchSimulatedKnockout(), 800);
         }
       }
     } catch (err) {
