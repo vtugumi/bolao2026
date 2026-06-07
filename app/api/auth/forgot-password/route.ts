@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(resendKey)
 
       await resend.emails.send({
-        from: 'Bolao Copa 2026 <noreply@bolao2026-omega.vercel.app>',
+        from: 'Bolao Copa 2026 <onboarding@resend.dev>',
         to: email,
         subject: 'Recuperar senha - Bolao Copa 2026',
         html: `
