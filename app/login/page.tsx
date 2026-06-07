@@ -94,6 +94,9 @@ export default function LoginPage() {
               Cadastre-se
             </Link>
           </p>
+          <p className="text-center text-xs text-gray-400">
+            Esqueceu a senha? Fale com o administrador do bolao.
+          </p>
         </form>
       </div>
     </div>

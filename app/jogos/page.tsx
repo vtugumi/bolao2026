@@ -125,11 +125,11 @@ export default function JogosPage() {
       });
       if (res.ok) {
         await fetchMatches();
-        // Refresh standings/simulated data
+        // Standings refresh with delay to not block the UI
         if (activeTab === 'groups') {
-          await fetchStandings();
+          setTimeout(() => fetchStandings(), 500);
         } else {
-          await fetchSimulatedKnockout();
+          setTimeout(() => fetchSimulatedKnockout(), 500);
         }
       }
     } catch (err) {

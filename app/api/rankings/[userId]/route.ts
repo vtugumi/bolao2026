@@ -14,18 +14,26 @@ export async function GET(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true },
     })
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Usuário não encontrado.' },
+        { error: 'Usuario nao encontrado.' },
         { status: 404 }
       )
     }
 
+    const now = new Date()
+
+    // Only return predictions for matches that have already started
     const predictions = await prisma.prediction.findMany({
-      where: { userId },
+      where: {
+        userId,
+        match: {
+          dateTime: { lte: now },
+        },
+      },
       include: {
         match: {
           include: {
@@ -37,9 +45,18 @@ export async function GET(
       orderBy: { match: { matchNumber: 'asc' } },
     })
 
-    const bonusPredictions = await prisma.bonusPrediction.findMany({
-      where: { userId },
+    // Only show bonus predictions after tournament starts
+    const tournamentStart = await prisma.setting.findUnique({
+      where: { key: 'tournamentStartDate' },
     })
+
+    let bonusPredictions: { type: string; value: string; points: number | null }[] = []
+    if (tournamentStart && new Date(tournamentStart.value) <= now) {
+      bonusPredictions = await prisma.bonusPrediction.findMany({
+        where: { userId },
+        select: { type: true, value: true, points: true },
+      })
+    }
 
     const totalPoints =
       predictions.reduce((sum, p) => sum + (p.points ?? 0), 0) +
