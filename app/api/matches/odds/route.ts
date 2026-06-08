@@ -83,10 +83,8 @@ export async function GET(request: NextRequest) {
 
       // Group & Market odds: ONLY when real teams are defined
       // (simulated knockout matches have different teams per user → stats are meaningless)
-      const now = new Date()
-      const matchStarted = new Date(m.dateTime) <= now
-      const userPredicted = user ? matchPreds.some(p => p.userId === user.id) : false
-      const showGroupOdds = hasRealTeams && (matchStarted || userPredicted)
+      // Group odds: always show (helps user decide before predicting)
+      const showGroupOdds = hasRealTeams
       const showMarketOdds = hasRealTeams
 
       return {
