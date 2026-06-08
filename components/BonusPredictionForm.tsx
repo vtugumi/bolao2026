@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { BonusOddsPanel } from './OddsPanel';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -24,6 +25,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
   const [thirdPlace, setThirdPlace] = useState(initialData?.thirdPlace || '');
   const [fourthPlace, setFourthPlace] = useState(initialData?.fourthPlace || '');
   const [teams, setTeams] = useState<{ id: number; name: string; flagEmoji: string }[]>([]);
+  const [bonusOdds, setBonusOdds] = useState<any>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -39,6 +41,12 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
         const sorted = Array.from(teamMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
         setTeams(sorted);
       })
+      .catch(() => {});
+
+    // Fetch bonus odds
+    fetch('/api/predictions/bonus/odds')
+      .then(r => r.json())
+      .then(data => setBonusOdds(data))
       .catch(() => {});
   }, []);
 
@@ -76,6 +84,16 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
             <option key={t.id} value={t.name}>{t.flagEmoji} {t.name}</option>
           ))}
         </select>
+        {bonusOdds && (
+          <BonusOddsPanel
+            title="Campeao"
+            groupOdds={bonusOdds.group?.CHAMPION || []}
+            rankingOdds={bonusOdds.ranking?.CHAMPION?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
+            marketOdds={bonusOdds.market?.CHAMPION || []}
+            totalMembers={bonusOdds.totalMembers || 0}
+            userHasPredicted={bonusOdds.userHasPredicted || false}
+          />
+        )}
       </div>
 
       <div>
@@ -89,6 +107,15 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
             <option key={t.id} value={t.name}>{t.flagEmoji} {t.name}</option>
           ))}
         </select>
+        {bonusOdds && (
+          <BonusOddsPanel
+            title="Vice-campeao"
+            groupOdds={bonusOdds.group?.RUNNER_UP || []}
+            rankingOdds={bonusOdds.ranking?.RUNNER_UP?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
+            totalMembers={bonusOdds.totalMembers || 0}
+            userHasPredicted={bonusOdds.userHasPredicted || false}
+          />
+        )}
       </div>
 
       <div>
@@ -102,6 +129,15 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
             <option key={t.id} value={t.name}>{t.flagEmoji} {t.name}</option>
           ))}
         </select>
+        {bonusOdds && (
+          <BonusOddsPanel
+            title="3o Lugar"
+            groupOdds={bonusOdds.group?.THIRD_PLACE || []}
+            rankingOdds={bonusOdds.ranking?.THIRD_PLACE?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
+            totalMembers={bonusOdds.totalMembers || 0}
+            userHasPredicted={bonusOdds.userHasPredicted || false}
+          />
+        )}
       </div>
 
       <div>
@@ -115,6 +151,15 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
             <option key={t.id} value={t.name}>{t.flagEmoji} {t.name}</option>
           ))}
         </select>
+        {bonusOdds && (
+          <BonusOddsPanel
+            title="4o Lugar"
+            groupOdds={bonusOdds.group?.FOURTH_PLACE || []}
+            rankingOdds={bonusOdds.ranking?.FOURTH_PLACE?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
+            totalMembers={bonusOdds.totalMembers || 0}
+            userHasPredicted={bonusOdds.userHasPredicted || false}
+          />
+        )}
       </div>
 
       <div>
@@ -124,6 +169,15 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
         <input type="text" value={topScorer} onChange={e => setTopScorer(e.target.value)} disabled={locked}
           placeholder="Nome do jogador"
           className={selectClass} />
+        {bonusOdds && (
+          <BonusOddsPanel
+            title="Artilheiro"
+            groupOdds={bonusOdds.group?.TOP_SCORER || []}
+            marketOdds={bonusOdds.market?.TOP_SCORER || []}
+            totalMembers={bonusOdds.totalMembers || 0}
+            userHasPredicted={bonusOdds.userHasPredicted || false}
+          />
+        )}
       </div>
 
       {error && <p className="text-red-500 text-sm">{error}</p>}

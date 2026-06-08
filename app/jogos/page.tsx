@@ -24,6 +24,7 @@ export default function JogosPage() {
   const [predictedCount, setPredictedCount] = useState(0);
   const [totalGroupMatches, setTotalGroupMatches] = useState(0);
   const [simulatedKnockout, setSimulatedKnockout] = useState<any[]>([]);
+  const [matchOdds, setMatchOdds] = useState<Record<number, any>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchMatches = useCallback(async () => {
@@ -82,6 +83,35 @@ export default function JogosPage() {
     fetchStandings();
   }, [fetchStandings]);
 
+  // Fetch odds for current matches
+  const fetchOdds = useCallback(async () => {
+    if (!user) return;
+    try {
+      const params = new URLSearchParams();
+      if (activeTab === 'groups') {
+        params.set('stage', 'GROUP');
+        params.set('groupLabel', selectedGroup);
+      } else {
+        params.set('stage', selectedStage);
+      }
+      const res = await fetch(`/api/matches/odds?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const oddsMap: Record<number, any> = {};
+        for (const item of data) {
+          oddsMap[item.matchId] = item;
+        }
+        setMatchOdds(oddsMap);
+      }
+    } catch {
+      // odds are optional, don't block UI
+    }
+  }, [activeTab, selectedGroup, selectedStage, user]);
+
+  useEffect(() => {
+    fetchOdds();
+  }, [fetchOdds]);
+
   // Fetch simulated knockout data when in knockout tab
   const fetchSimulatedKnockout = useCallback(async () => {
     if (activeTab !== 'knockout' || !user) return;
@@ -131,11 +161,11 @@ export default function JogosPage() {
             ? { ...m, userPrediction: savedPrediction }
             : m
         ));
-        // Refresh standings in background (doesn't block UI)
+        // Refresh standings and odds in background (doesn't block UI)
         if (activeTab === 'groups') {
-          setTimeout(() => fetchStandings(), 800);
+          setTimeout(() => { fetchStandings(); fetchOdds(); }, 800);
         } else {
-          setTimeout(() => fetchSimulatedKnockout(), 800);
+          setTimeout(() => { fetchSimulatedKnockout(); fetchOdds(); }, 800);
         }
       }
     } catch (err) {
@@ -181,7 +211,7 @@ export default function JogosPage() {
                 <p className="text-center text-gray-500 py-12">Nenhum jogo encontrado.</p>
               ) : (
                 matches.map((match: any) => (
-                  <MatchCard key={match.id} match={match} showPrediction={!!user} onSavePrediction={handleSavePrediction} />
+                  <MatchCard key={match.id} match={match} showPrediction={!!user} odds={matchOdds[match.id] || null} onSavePrediction={handleSavePrediction} />
                 ))
               )}
             </div>
@@ -222,7 +252,7 @@ export default function JogosPage() {
                       enrichedMatch.simulatedAwayTeamId = simMatch.awayTeam.id;
                     }
                   }
-                  return <MatchCard key={match.id} match={enrichedMatch} showPrediction={!!user} onSavePrediction={handleSavePrediction} />;
+                  return <MatchCard key={match.id} match={enrichedMatch} showPrediction={!!user} odds={matchOdds[match.id] || null} onSavePrediction={handleSavePrediction} />;
                 })
               )}
             </div>

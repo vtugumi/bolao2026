@@ -48,3 +48,9 @@ prisma/dev.db-journal
 
 # scripts
 scripts/
+
+.vercel
+*.docx
+*.xlsx
+tmp_*.json
+.env.production.local

@@ -22,11 +22,12 @@ model User {
 }
 
 model Team {
-  id         Int     @id @default(autoincrement())
-  name       String  @unique
-  code       String  @unique
-  flagEmoji  String  @default("")
-  groupLabel String?
+  id            Int     @id @default(autoincrement())
+  name          String  @unique
+  code          String  @unique
+  flagEmoji     String  @default("")
+  groupLabel    String?
+  fifaRanking   Int?
 
   homeMatches Match[] @relation("HomeTeam")
   awayMatches Match[] @relation("AwayTeam")

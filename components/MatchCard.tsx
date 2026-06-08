@@ -2,12 +2,21 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Flag from './Flag';
+import OddsPanel from './OddsPanel';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+interface MatchOdds {
+  group: { homeWin: number; draw: number; awayWin: number; total: number } | null;
+  ranking: { homeWin: number; draw: number; awayWin: number } | null;
+  market: { homeWin: number; draw: number; awayWin: number } | null;
+  totalGroupMembers: number;
+}
 
 interface MatchCardProps {
   match: any;
   showPrediction?: boolean;
+  odds?: MatchOdds | null;
   onSavePrediction?: (matchId: number, data: { homeScore: number; awayScore: number; winnerId?: number }) => Promise<void>;
 }
 
@@ -44,7 +53,7 @@ function isKnockout(stage: string): boolean {
   return ['R32', 'R16', 'QF', 'SF', '3RD', 'FINAL'].includes(stage);
 }
 
-export default function MatchCard({ match, showPrediction, onSavePrediction }: MatchCardProps) {
+export default function MatchCard({ match, showPrediction, odds, onSavePrediction }: MatchCardProps) {
   const pred = match.userPrediction || match.prediction || null;
   const isSimulatedHome = match.homeTeam?.simulated === true;
   const isSimulatedAway = match.awayTeam?.simulated === true;
@@ -296,6 +305,11 @@ export default function MatchCard({ match, showPrediction, onSavePrediction }: M
             </div>
           )}
         </div>
+      )}
+
+      {/* Odds Panel */}
+      {odds && showPrediction && (
+        <OddsPanel odds={odds} homeEmoji={homeFlag} awayEmoji={awayFlag} />
       )}
 
       {/* Prediction input - only before match starts */}
