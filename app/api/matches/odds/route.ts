@@ -78,18 +78,23 @@ export async function GET(request: NextRequest) {
       const awayCode = m.awayTeam?.code || ''
       const matchPreds = predsByMatch[m.id] || []
 
-      // Only show group odds if user already predicted this match OR match started
+      // Real teams = both homeTeamId and awayTeamId set in DB (not simulated)
+      const hasRealTeams = m.homeTeamId !== null && m.awayTeamId !== null
+
+      // Group & Market odds: ONLY when real teams are defined
+      // (simulated knockout matches have different teams per user → stats are meaningless)
       const now = new Date()
       const matchStarted = new Date(m.dateTime) <= now
       const userPredicted = user ? matchPreds.some(p => p.userId === user.id) : false
-      const showGroupOdds = matchStarted || userPredicted
+      const showGroupOdds = hasRealTeams && (matchStarted || userPredicted)
+      const showMarketOdds = hasRealTeams
 
       return {
         matchId: m.id,
         matchNumber: m.matchNumber,
         group: showGroupOdds ? calcGroupOdds(matchPreds) : null,
         ranking: homeCode && awayCode ? calcRankingOdds(homeCode, awayCode) : null,
-        market: marketOdds[String(m.matchNumber)] || null,
+        market: showMarketOdds ? (marketOdds[String(m.matchNumber)] || null) : null,
         totalGroupMembers: groupMemberIds.length,
       }
     })
