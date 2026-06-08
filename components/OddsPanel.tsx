@@ -16,10 +16,11 @@ interface OddsPanelProps {
 }
 
 function OddsBar({
-  homeWin, draw, awayWin,
+  homeWin, draw, awayWin, label,
   colorScheme = 'default',
 }: {
   homeWin: number; draw: number; awayWin: number;
+  label: string;
   colorScheme?: 'default' | 'blue' | 'amber';
 }) {
   const total = homeWin + draw + awayWin;
@@ -34,52 +35,33 @@ function OddsBar({
   }[colorScheme];
 
   return (
-    <div className="flex h-[18px] rounded-full overflow-hidden bg-gray-100 text-[9px] font-bold leading-none">
-      {h > 0 && (
-        <div
-          className={`${colors.home} text-white flex items-center justify-center transition-all duration-500`}
-          style={{ width: `${Math.max(h, 10)}%` }}
-        >
-          {h}%
-        </div>
-      )}
-      {d > 0 && (
-        <div
-          className={`${colors.draw} text-white flex items-center justify-center transition-all duration-500`}
-          style={{ width: `${Math.max(d, 10)}%` }}
-        >
-          {d}%
-        </div>
-      )}
-      {a > 0 && (
-        <div
-          className={`${colors.away} text-white flex items-center justify-center transition-all duration-500`}
-          style={{ width: `${Math.max(a, 10)}%` }}
-        >
-          {a}%
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MarketDecimalRow({ homeWin, draw, awayWin }: { homeWin: number; draw: number; awayWin: number }) {
-  // Convert decimal odds to implied probability for the bar
-  const homeProb = 1 / homeWin;
-  const drawProb = 1 / draw;
-  const awayProb = 1 / awayWin;
-  const totalProb = homeProb + drawProb + awayProb;
-  const hPct = Math.round((homeProb / totalProb) * 100);
-  const dPct = Math.round((drawProb / totalProb) * 100);
-  const aPct = 100 - hPct - dPct;
-
-  return (
-    <div className="space-y-1">
-      <OddsBar homeWin={hPct} draw={dPct} awayWin={aPct} colorScheme="blue" />
-      <div className="flex justify-between text-[9px] font-mono text-gray-400 px-1">
-        <span>{homeWin.toFixed(2)}</span>
-        <span>{draw.toFixed(2)}</span>
-        <span>{awayWin.toFixed(2)}</span>
+    <div className="flex items-center gap-1.5">
+      <span className="text-[9px] text-gray-400 w-14 sm:w-16 shrink-0 truncate">{label}</span>
+      <div className="flex h-4 rounded-full overflow-hidden bg-gray-100 text-[8px] sm:text-[9px] font-bold leading-none flex-1 min-w-0">
+        {h > 0 && (
+          <div
+            className={`${colors.home} text-white flex items-center justify-center`}
+            style={{ width: `${Math.max(h, 12)}%` }}
+          >
+            {h}%
+          </div>
+        )}
+        {d > 0 && (
+          <div
+            className={`${colors.draw} text-white flex items-center justify-center`}
+            style={{ width: `${Math.max(d, 12)}%` }}
+          >
+            {d}%
+          </div>
+        )}
+        {a > 0 && (
+          <div
+            className={`${colors.away} text-white flex items-center justify-center`}
+            style={{ width: `${Math.max(a, 12)}%` }}
+          >
+            {a}%
+          </div>
+        )}
       </div>
     </div>
   );
@@ -89,53 +71,66 @@ export default function OddsPanel({ odds, homeEmoji, awayEmoji }: OddsPanelProps
   const hasAnyOdds = odds.group || odds.ranking || odds.market;
   if (!hasAnyOdds) return null;
 
+  // Convert market decimal odds to probabilities
+  let marketProbs: { homeWin: number; draw: number; awayWin: number } | null = null;
+  if (odds.market) {
+    const hP = 1 / odds.market.homeWin;
+    const dP = 1 / odds.market.draw;
+    const aP = 1 / odds.market.awayWin;
+    const tot = hP + dP + aP;
+    marketProbs = {
+      homeWin: Math.round((hP / tot) * 100),
+      draw: Math.round((dP / tot) * 100),
+      awayWin: 100 - Math.round((hP / tot) * 100) - Math.round((dP / tot) * 100),
+    };
+  }
+
   return (
-    <div className="mx-4 mb-3 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-gray-200 p-3 space-y-2">
-      {/* Header */}
+    <div className="mx-2 sm:mx-4 mb-2 rounded-lg bg-gray-50 border border-gray-200 px-2.5 sm:px-3 py-2 space-y-1.5">
+      {/* Header row */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">📊 Odds</span>
-        <div className="flex items-center gap-3 text-[9px] text-gray-400">
-          <span>{homeEmoji || '🏠'} Casa</span>
-          <span>✕ Empate</span>
-          <span>{awayEmoji || '✈️'} Fora</span>
+        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">📊 Odds</span>
+        <div className="flex items-center gap-2 sm:gap-3 text-[8px] sm:text-[9px] text-gray-400">
+          <span>{homeEmoji} Casa</span>
+          <span>✕</span>
+          <span>{awayEmoji} Fora</span>
         </div>
       </div>
 
-      {/* 1. Group odds (social - most engaging) */}
+      {/* All bars stacked compactly */}
       {odds.group && odds.group.total > 0 && (
+        <OddsBar
+          homeWin={odds.group.homeWin} draw={odds.group.draw} awayWin={odds.group.awayWin}
+          label={`👥 ${odds.group.total}/${odds.totalGroupMembers}`}
+        />
+      )}
+
+      {marketProbs && (
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-500 font-medium">👥 Grupo</span>
-            <span className="text-[9px] text-gray-400">{odds.group.total}/{odds.totalGroupMembers} palpitaram</span>
+          <OddsBar
+            homeWin={marketProbs.homeWin} draw={marketProbs.draw} awayWin={marketProbs.awayWin}
+            label="📈 Mercado"
+            colorScheme="blue"
+          />
+          <div className="flex justify-between text-[8px] font-mono text-gray-300 pl-[62px] sm:pl-[70px] pr-0.5 -mt-0.5">
+            <span>{odds.market!.homeWin.toFixed(2)}</span>
+            <span>{odds.market!.draw.toFixed(2)}</span>
+            <span>{odds.market!.awayWin.toFixed(2)}</span>
           </div>
-          <OddsBar homeWin={odds.group.homeWin} draw={odds.group.draw} awayWin={odds.group.awayWin} />
         </div>
       )}
 
-      {/* 2. Market odds (when available) */}
-      {odds.market && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-500 font-medium">📈 Mercado</span>
-            <span className="text-[9px] text-gray-400">odds decimais</span>
-          </div>
-          <MarketDecimalRow homeWin={odds.market.homeWin} draw={odds.market.draw} awayWin={odds.market.awayWin} />
-        </div>
-      )}
-
-      {/* 3. Ranking odds (always available) */}
       {odds.ranking && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-500 font-medium">🏆 Ranking FIFA</span>
-          </div>
-          <OddsBar homeWin={odds.ranking.homeWin} draw={odds.ranking.draw} awayWin={odds.ranking.awayWin} colorScheme="amber" />
-        </div>
+        <OddsBar
+          homeWin={odds.ranking.homeWin} draw={odds.ranking.draw} awayWin={odds.ranking.awayWin}
+          label="🏆 FIFA"
+          colorScheme="amber"
+        />
       )}
 
       {/* Hint when no group odds */}
       {(!odds.group || odds.group.total === 0) && (
-        <p className="text-[9px] text-gray-400 italic text-center">Palpite para ver as odds do grupo 👥</p>
+        <p className="text-[8px] text-gray-300 italic text-center">Palpite para ver odds do grupo 👥</p>
       )}
     </div>
   );
@@ -169,29 +164,29 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, tota
   const topMarket = marketOdds?.slice(0, 5) || [];
 
   return (
-    <div className="rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-gray-200 p-3 space-y-2 mt-2">
-      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-        📊 Odds - {title}
+    <div className="rounded-lg bg-gray-50 border border-gray-200 px-2.5 sm:px-3 py-2 space-y-1.5 mt-2">
+      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+        📊 {title}
       </span>
 
       {/* Group odds */}
       {topGroup.length > 0 && userHasPredicted && (
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-500 font-medium">👥 Grupo</span>
-            <span className="text-[9px] text-gray-400">{totalMembers} participantes</span>
+            <span className="text-[9px] text-gray-500">👥 Grupo</span>
+            <span className="text-[8px] text-gray-400">{totalMembers} membros</span>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {topGroup.map((item, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div key={i} className="flex items-center gap-1.5">
+                <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                    className="h-full bg-emerald-400 rounded-full"
                     style={{ width: `${item.percentage || 0}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-gray-600 w-8 text-right font-bold">{item.percentage}%</span>
-                <span className="text-[10px] text-gray-700 w-28 truncate">{item.value}</span>
+                <span className="text-[9px] text-gray-600 w-7 text-right font-bold">{item.percentage}%</span>
+                <span className="text-[9px] text-gray-700 w-24 sm:w-28 truncate">{item.value}</span>
               </div>
             ))}
           </div>
@@ -201,12 +196,10 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, tota
       {/* Market odds */}
       {topMarket.length > 0 && (
         <div>
-          <div className="flex items-center mb-1">
-            <span className="text-[10px] text-gray-500 font-medium">📈 Mercado</span>
-          </div>
-          <div className="flex flex-wrap gap-1">
+          <span className="text-[9px] text-gray-500">📈 Mercado</span>
+          <div className="flex flex-wrap gap-1 mt-0.5">
             {topMarket.map((item, i) => (
-              <span key={i} className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
+              <span key={i} className="text-[8px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
                 {item.value} {item.odds?.toFixed(2)}
               </span>
             ))}
@@ -217,12 +210,10 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, tota
       {/* Ranking odds */}
       {topRanking.length > 0 && (
         <div>
-          <div className="flex items-center mb-1">
-            <span className="text-[10px] text-gray-500 font-medium">🏆 Ranking FIFA</span>
-          </div>
-          <div className="flex flex-wrap gap-1">
+          <span className="text-[9px] text-gray-500">🏆 FIFA</span>
+          <div className="flex flex-wrap gap-1 mt-0.5">
             {topRanking.map((item, i) => (
-              <span key={i} className="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">
+              <span key={i} className="text-[8px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">
                 {item.flagEmoji} {item.probability || item.percentage}%
               </span>
             ))}
@@ -231,7 +222,7 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, tota
       )}
 
       {!userHasPredicted && topGroup.length === 0 && (
-        <p className="text-[9px] text-gray-400 italic">Palpite para ver as odds do grupo 👥</p>
+        <p className="text-[8px] text-gray-300 italic">Palpite para ver odds do grupo 👥</p>
       )}
     </div>
   );
