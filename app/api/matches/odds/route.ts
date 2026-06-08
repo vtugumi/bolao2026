@@ -54,15 +54,15 @@ export async function GET(request: NextRequest) {
             matchId: { in: matchIds },
             userId: { in: groupMemberIds },
           },
-          select: { matchId: true, homeScore: true, awayScore: true },
+          select: { matchId: true, userId: true, homeScore: true, awayScore: true },
         })
       : []
 
     // Group predictions by match
-    const predsByMatch: Record<number, Array<{ homeScore: number; awayScore: number }>> = {}
+    const predsByMatch: Record<number, Array<{ userId: number; homeScore: number; awayScore: number }>> = {}
     for (const p of predictions) {
       if (!predsByMatch[p.matchId]) predsByMatch[p.matchId] = []
-      predsByMatch[p.matchId].push({ homeScore: p.homeScore, awayScore: p.awayScore })
+      predsByMatch[p.matchId].push({ userId: p.userId, homeScore: p.homeScore, awayScore: p.awayScore })
     }
 
     // Check for cached market odds
@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
       // Only show group odds if user already predicted this match OR match started
       const now = new Date()
       const matchStarted = new Date(m.dateTime) <= now
-      const userPredicted = user ? matchPreds.some(() => true) : false // simplified - we check via group
-      const showGroupOdds = matchStarted || (user && userPredicted)
+      const userPredicted = user ? matchPreds.some(p => p.userId === user.id) : false
+      const showGroupOdds = matchStarted || userPredicted
 
       return {
         matchId: m.id,
