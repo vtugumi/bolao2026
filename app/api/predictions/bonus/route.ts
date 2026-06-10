@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       where: { userId: user.id },
     })
 
-    return NextResponse.json(bonusPredictions)
+    return NextResponse.json(bonusPredictions, {
+      headers: { 'Cache-Control': 'private, no-store' },
+    })
   } catch (error) {
     console.error('Erro ao listar palpites bônus:', error)
     return NextResponse.json(

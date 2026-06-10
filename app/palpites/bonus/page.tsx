@@ -11,6 +11,7 @@ interface BonusPrediction {
   topScorer?: string;
   thirdPlace?: string;
   fourthPlace?: string;
+  brazilFirstGoal?: string;
   locked?: boolean;
 }
 
@@ -34,6 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   THIRD_PLACE: 'Terceiro lugar',
   FOURTH_PLACE: 'Quarto lugar',
   TOP_SCORER: 'Artilheiro',
+  BRAZIL_FIRST_GOAL: 'Primeiro gol do Brasil',
 };
 
 const TYPE_POINTS: Record<string, number> = {
@@ -42,9 +44,10 @@ const TYPE_POINTS: Record<string, number> = {
   THIRD_PLACE: 50,
   FOURTH_PLACE: 50,
   TOP_SCORER: 80,
+  BRAZIL_FIRST_GOAL: 50,
 };
 
-const TYPE_ORDER = ['CHAMPION', 'RUNNER_UP', 'THIRD_PLACE', 'FOURTH_PLACE', 'TOP_SCORER'];
+const TYPE_ORDER = ['CHAMPION', 'RUNNER_UP', 'THIRD_PLACE', 'FOURTH_PLACE', 'TOP_SCORER', 'BRAZIL_FIRST_GOAL'];
 
 export default function BonusPredictionsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -61,7 +64,7 @@ export default function BonusPredictionsPage() {
     const fetchAll = async () => {
       try {
         // Fetch user's own bonus predictions
-        const res = await fetch('/api/predictions/bonus');
+        const res = await fetch('/api/predictions/bonus', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
@@ -73,6 +76,7 @@ export default function BonusPredictionsPage() {
                 case 'TOP_SCORER': bonusObj.topScorer = item.value; break;
                 case 'THIRD_PLACE': bonusObj.thirdPlace = item.value; break;
                 case 'FOURTH_PLACE': bonusObj.fourthPlace = item.value; break;
+                case 'BRAZIL_FIRST_GOAL': bonusObj.brazilFirstGoal = item.value; break;
               }
             }
             setBonus(bonusObj);
@@ -103,6 +107,7 @@ export default function BonusPredictionsPage() {
     topScorer: string;
     thirdPlace: string;
     fourthPlace: string;
+    brazilFirstGoal: string;
   }) => {
     setSaving(true);
     setMessage('');
@@ -113,6 +118,7 @@ export default function BonusPredictionsPage() {
         { type: 'TOP_SCORER', value: data.topScorer },
         { type: 'THIRD_PLACE', value: data.thirdPlace },
         { type: 'FOURTH_PLACE', value: data.fourthPlace },
+        { type: 'BRAZIL_FIRST_GOAL', value: data.brazilFirstGoal },
       ];
 
       let hasError = false;

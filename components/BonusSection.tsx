@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from './AuthProvider';
 import { BonusOddsPanel } from './OddsPanel';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -25,6 +26,7 @@ const BRAZIL_PLAYERS = [
 ];
 
 export default function BonusSection() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [champion, setChampion] = useState('');
   const [runnerUp, setRunnerUp] = useState('');
@@ -42,17 +44,34 @@ export default function BonusSection() {
   const [cupStarted, setCupStarted] = useState(false);
   const [bonusOdds, setBonusOdds] = useState<any>(null);
 
-  // Load existing bonus predictions + teams list
+  // Load existing bonus predictions + teams list — re-runs when user changes (re-login)
   useEffect(() => {
+    // Reset state for new user
+    setChampion('');
+    setRunnerUp('');
+    setTopScorer('');
+    setIsCustomScorer(false);
+    setThirdPlace('');
+    setFourthPlace('');
+    setBrazilFirstGoal('');
+    setIsCustomBrazilPlayer(false);
+    setHasPredictions(false);
+    setLoaded(false);
+    setOpen(false);
+    setSaved(false);
+    setSaveError('');
+
+    if (!user) return;
+
     // Fetch bonus odds
-    fetch('/api/predictions/bonus/odds')
+    fetch('/api/predictions/bonus/odds', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setBonusOdds(data); })
       .catch(() => {});
 
     Promise.all([
-      fetch('/api/predictions/bonus').then(r => r.ok ? r.json() : []),
-      fetch('/api/matches?stage=GROUP&groupLabel=A').then(r => r.ok ? r.json() : []),
+      fetch('/api/predictions/bonus', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch('/api/matches?stage=GROUP&groupLabel=A', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
     ]).then(([bonusData]) => {
       // Parse bonus
       const bonusArr = Array.isArray(bonusData) ? bonusData : bonusData.predictions || [];
@@ -73,7 +92,7 @@ export default function BonusSection() {
       if (bonusArr.length > 0) setHasPredictions(true);
 
       // Parse teams from all groups + check if cup started
-      fetch('/api/matches?stage=GROUP').then(r => r.json()).then(allData => {
+      fetch('/api/matches?stage=GROUP', { cache: 'no-store' }).then(r => r.json()).then(allData => {
         const arr = Array.isArray(allData) ? allData : allData.matches || [];
         const teamMap = new Map<number, any>();
         let earliestDate: Date | null = null;
@@ -91,7 +110,7 @@ export default function BonusSection() {
 
       setLoaded(true);
     });
-  }, []);
+  }, [user?.id]);
 
   const [saveError, setSaveError] = useState('');
 
