@@ -45,7 +45,7 @@ interface OddsApiEvent {
 const TEAM_NAME_TO_CODE: Record<string, string> = {
   'Mexico': 'MEX', 'South Korea': 'KOR', 'South Africa': 'RSA', 'Czech Republic': 'CZE',
   'Czechia': 'CZE', 'Canada': 'CAN', 'Switzerland': 'SUI', 'Qatar': 'QAT',
-  'Bosnia and Herzegovina': 'BIH', 'Bosnia': 'BIH', 'Brazil': 'BRA', 'Morocco': 'MAR',
+  'Bosnia and Herzegovina': 'BIH', 'Bosnia & Herzegovina': 'BIH', 'Bosnia': 'BIH', 'Brazil': 'BRA', 'Morocco': 'MAR',
   'Scotland': 'SCO', 'Haiti': 'HAI', 'United States': 'USA', 'USA': 'USA',
   'Paraguay': 'PAR', 'Australia': 'AUS', 'Turkey': 'TUR', 'Türkiye': 'TUR',
   'Germany': 'GER', 'Ecuador': 'ECU', 'Ivory Coast': 'CIV', 'Côte d\'Ivoire': 'CIV',

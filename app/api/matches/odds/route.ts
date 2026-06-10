@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
-import { calcGroupOdds, calcRankingOdds } from '@/lib/odds'
+import { calcGroupOdds, calcRankingOdds, calcOptaOdds } from '@/lib/odds'
 
 export async function GET(request: NextRequest) {
   try {
@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
         matchNumber: m.matchNumber,
         group: showGroupOdds ? calcGroupOdds(matchPreds) : null,
         ranking: homeCode && awayCode ? calcRankingOdds(homeCode, awayCode) : null,
+        opta: homeCode && awayCode ? calcOptaOdds(homeCode, awayCode) : null,
         market: showMarketOdds ? (marketOdds[String(m.matchNumber)] || null) : null,
         totalGroupMembers: groupMemberIds.length,
       }

@@ -5,6 +5,7 @@
 interface MatchOdds {
   group: { homeWin: number; draw: number; awayWin: number; total: number } | null;
   ranking: { homeWin: number; draw: number; awayWin: number } | null;
+  opta: { homeWin: number; draw: number; awayWin: number } | null;
   market: { homeWin: number; draw: number; awayWin: number } | null;
   totalGroupMembers: number;
 }
@@ -28,41 +29,43 @@ function OddsBar({
   const a = 100 - h - d;
 
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[9px] text-gray-400 w-14 sm:w-16 shrink-0 truncate">{label}</span>
-      <div className="flex h-4 rounded-full overflow-hidden bg-gray-100 text-[8px] sm:text-[9px] font-bold leading-none flex-1 min-w-0">
-        {h > 0 && (
-          <div
-            className="bg-emerald-500 text-white flex items-center justify-center"
-            style={{ width: `${Math.max(h, 12)}%` }}
-          >
-            {h}%
-          </div>
-        )}
-        {d > 0 && (
-          <div
-            className="bg-gray-400 text-white flex items-center justify-center"
-            style={{ width: `${Math.max(d, 12)}%` }}
-          >
-            {d}%
-          </div>
-        )}
-        {a > 0 && (
-          <div
-            className="bg-red-400 text-white flex items-center justify-center"
-            style={{ width: `${Math.max(a, 12)}%` }}
-          >
-            {a}%
-          </div>
-        )}
+    <div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[9px] text-gray-400 w-14 sm:w-16 shrink-0 truncate">{label}</span>
+        <div className="flex h-4 rounded-full overflow-hidden bg-gray-100 text-[8px] sm:text-[9px] font-bold leading-none flex-1 min-w-0">
+          {h > 0 && (
+            <div
+              className="bg-emerald-500 text-white flex items-center justify-center"
+              style={{ width: `${Math.max(h, 12)}%` }}
+            >
+              {h}%
+            </div>
+          )}
+          {d > 0 && (
+            <div
+              className="bg-gray-400 text-white flex items-center justify-center"
+              style={{ width: `${Math.max(d, 12)}%` }}
+            >
+              {d}%
+            </div>
+          )}
+          {a > 0 && (
+            <div
+              className="bg-red-400 text-white flex items-center justify-center"
+              style={{ width: `${Math.max(a, 12)}%` }}
+            >
+              {a}%
+            </div>
+          )}
+        </div>
       </div>
-      {extra && <span className="text-[8px] text-gray-300 shrink-0">{extra}</span>}
+      {extra && <div className="text-[8px] text-gray-300 text-center mt-0.5">{extra}</div>}
     </div>
   );
 }
 
 export default function OddsPanel({ odds, homeEmoji, awayEmoji }: OddsPanelProps) {
-  const hasAnyOdds = odds.group || odds.ranking || odds.market;
+  const hasAnyOdds = odds.group || odds.ranking || odds.opta || odds.market;
   if (!hasAnyOdds) return null;
 
   // Convert market decimal odds to probabilities
@@ -99,26 +102,28 @@ export default function OddsPanel({ odds, homeEmoji, awayEmoji }: OddsPanelProps
         />
       )}
 
-      {/* Market odds */}
-      {marketProbs && (
-        <div>
-          <OddsBar
-            homeWin={marketProbs.homeWin} draw={marketProbs.draw} awayWin={marketProbs.awayWin}
-            label="📈 Mercado"
-          />
-          <div className="flex justify-between text-[8px] font-mono text-gray-300 pl-[62px] sm:pl-[70px] pr-0.5 -mt-0.5">
-            <span>{odds.market!.homeWin.toFixed(2)}</span>
-            <span>{odds.market!.draw.toFixed(2)}</span>
-            <span>{odds.market!.awayWin.toFixed(2)}</span>
-          </div>
-        </div>
-      )}
-
       {/* FIFA Ranking odds */}
       {odds.ranking && (
         <OddsBar
           homeWin={odds.ranking.homeWin} draw={odds.ranking.draw} awayWin={odds.ranking.awayWin}
           label="🏆 FIFA"
+        />
+      )}
+
+      {/* Opta Supercomputer odds */}
+      {odds.opta && (
+        <OddsBar
+          homeWin={odds.opta.homeWin} draw={odds.opta.draw} awayWin={odds.opta.awayWin}
+          label="🔬 Opta"
+        />
+      )}
+
+      {/* Market odds - last (média de ~25 casas de apostas) */}
+      {marketProbs && (
+        <OddsBar
+          homeWin={marketProbs.homeWin} draw={marketProbs.draw} awayWin={marketProbs.awayWin}
+          label="📈 Mercado"
+          extra={`${odds.market!.homeWin.toFixed(1)} · ${odds.market!.draw.toFixed(1)} · ${odds.market!.awayWin.toFixed(1)}`}
         />
       )}
     </div>
@@ -139,17 +144,19 @@ interface BonusOddsPanelProps {
   title: string;
   groupOdds: BonusOddsItem[];
   rankingOdds?: BonusOddsItem[];
+  optaOdds?: BonusOddsItem[];
   marketOdds?: BonusOddsItem[];
   totalMembers: number;
   userHasPredicted: boolean;
 }
 
-export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, totalMembers, userHasPredicted }: BonusOddsPanelProps) {
-  const hasData = (groupOdds.length > 0 && userHasPredicted) || (rankingOdds && rankingOdds.length > 0) || (marketOdds && marketOdds.length > 0);
+export function BonusOddsPanel({ title, groupOdds, rankingOdds, optaOdds, marketOdds, totalMembers, userHasPredicted }: BonusOddsPanelProps) {
+  const hasData = groupOdds.length > 0 || (rankingOdds && rankingOdds.length > 0) || (optaOdds && optaOdds.length > 0) || (marketOdds && marketOdds.length > 0);
   if (!hasData) return null;
 
   const topGroup = groupOdds.slice(0, 5);
   const topRanking = rankingOdds?.slice(0, 5) || [];
+  const topOpta = optaOdds?.slice(0, 5) || [];
   const topMarket = marketOdds?.slice(0, 5) || [];
 
   return (
@@ -159,7 +166,7 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, tota
       </span>
 
       {/* Group odds */}
-      {topGroup.length > 0 && userHasPredicted && (
+      {topGroup.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] text-gray-500">👥 Grupo</span>
@@ -182,7 +189,35 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, tota
         </div>
       )}
 
-      {/* Market odds */}
+      {/* Ranking odds */}
+      {topRanking.length > 0 && (
+        <div>
+          <span className="text-[9px] text-gray-500">🏆 FIFA</span>
+          <div className="flex flex-wrap gap-1 mt-0.5">
+            {topRanking.map((item, i) => (
+              <span key={i} className="text-[8px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">
+                {item.value} {item.probability || item.percentage}%
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Opta odds */}
+      {topOpta.length > 0 && (
+        <div>
+          <span className="text-[9px] text-gray-500">🔬 Opta</span>
+          <div className="flex flex-wrap gap-1 mt-0.5">
+            {topOpta.map((item, i) => (
+              <span key={i} className="text-[8px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">
+                {item.value} {item.probability || item.percentage}%
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Market odds - last (same order as match cards) */}
       {topMarket.length > 0 && (
         <div>
           <span className="text-[9px] text-gray-500">📈 Mercado</span>
@@ -196,23 +231,6 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, marketOdds, tota
         </div>
       )}
 
-      {/* Ranking odds */}
-      {topRanking.length > 0 && (
-        <div>
-          <span className="text-[9px] text-gray-500">🏆 FIFA</span>
-          <div className="flex flex-wrap gap-1 mt-0.5">
-            {topRanking.map((item, i) => (
-              <span key={i} className="text-[8px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">
-                {item.flagEmoji} {item.probability || item.percentage}%
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!userHasPredicted && topGroup.length === 0 && (
-        <p className="text-[8px] text-gray-300 italic">Palpite para ver odds do grupo 👥</p>
-      )}
     </div>
   );
 }

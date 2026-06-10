@@ -9,6 +9,7 @@ import OddsPanel from './OddsPanel';
 interface MatchOdds {
   group: { homeWin: number; draw: number; awayWin: number; total: number } | null;
   ranking: { homeWin: number; draw: number; awayWin: number } | null;
+  opta: { homeWin: number; draw: number; awayWin: number } | null;
   market: { homeWin: number; draw: number; awayWin: number } | null;
   totalGroupMembers: number;
 }

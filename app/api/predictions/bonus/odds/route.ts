@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
-import { calcBonusOdds, calcChampionshipOdds } from '@/lib/odds'
+import { calcBonusOdds, calcChampionshipOdds, OPTA_CHAMPION_PROB } from '@/lib/odds'
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,6 +50,18 @@ export async function GET(request: NextRequest) {
     // Calculate ranking-based championship odds
     const rankingOdds = calcChampionshipOdds(teams)
 
+    // Opta championship probabilities (top 10)
+    const optaOdds = teams
+      .filter(t => OPTA_CHAMPION_PROB[t.code])
+      .map(t => ({
+        code: t.code,
+        name: t.name,
+        flagEmoji: t.flagEmoji,
+        probability: OPTA_CHAMPION_PROB[t.code],
+      }))
+      .sort((a, b) => b.probability - a.probability)
+      .slice(0, 10)
+
     // Check if user already submitted bonus predictions
     const userBonus = await prisma.bonusPrediction.findMany({
       where: { userId: user.id },
@@ -66,20 +78,23 @@ export async function GET(request: NextRequest) {
 
     const result = {
       group: {
-        CHAMPION: userHasPredicted ? calcBonusOdds(byType['CHAMPION'] || []) : [],
-        RUNNER_UP: userHasPredicted ? calcBonusOdds(byType['RUNNER_UP'] || []) : [],
-        THIRD_PLACE: userHasPredicted ? calcBonusOdds(byType['THIRD_PLACE'] || []) : [],
-        FOURTH_PLACE: userHasPredicted ? calcBonusOdds(byType['FOURTH_PLACE'] || []) : [],
-        TOP_SCORER: userHasPredicted ? calcBonusOdds(byType['TOP_SCORER'] || []) : [],
+        CHAMPION: calcBonusOdds(byType['CHAMPION'] || []),
+        RUNNER_UP: calcBonusOdds(byType['RUNNER_UP'] || []),
+        THIRD_PLACE: calcBonusOdds(byType['THIRD_PLACE'] || []),
+        FOURTH_PLACE: calcBonusOdds(byType['FOURTH_PLACE'] || []),
+        TOP_SCORER: calcBonusOdds(byType['TOP_SCORER'] || []),
+        BRAZIL_FIRST_GOAL: calcBonusOdds(byType['BRAZIL_FIRST_GOAL'] || []),
       },
       ranking: {
-        // Top 10 teams by championship probability
         CHAMPION: rankingOdds.slice(0, 10),
-        RUNNER_UP: rankingOdds.slice(0, 10),
-        THIRD_PLACE: rankingOdds.slice(0, 10),
-        FOURTH_PLACE: rankingOdds.slice(0, 10),
       },
-      market: marketOdds,
+      opta: {
+        CHAMPION: optaOdds,
+      },
+      market: {
+        CHAMPION: marketOdds['CHAMPION'] || [],
+        TOP_SCORER: marketOdds['TOP_SCORER'] || [],
+      },
       totalMembers: groupMemberIds.length,
       userHasPredicted,
     }

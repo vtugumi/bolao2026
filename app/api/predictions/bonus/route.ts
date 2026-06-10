@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
 
-const VALID_BONUS_TYPES = ['CHAMPION', 'RUNNER_UP', 'TOP_SCORER', 'THIRD_PLACE', 'FOURTH_PLACE']
+const VALID_BONUS_TYPES = ['CHAMPION', 'RUNNER_UP', 'TOP_SCORER', 'THIRD_PLACE', 'FOURTH_PLACE', 'BRAZIL_FIRST_GOAL']
 
 export async function GET(request: NextRequest) {
   try {

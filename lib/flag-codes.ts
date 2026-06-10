@@ -7,11 +7,12 @@ export const FIFA_TO_ISO: Record<string, string> = {
   GER: 'de', ECU: 'ec', CIV: 'ci', CUW: 'cw',
   NED: 'nl', JPN: 'jp', TUN: 'tn', PLB: '',
   BEL: 'be', IRN: 'ir', EGY: 'eg', NZL: 'nz',
-  ESP: 'es', URU: 'uy', KSA: 'sa', CPV: 'cv',
+  ESP: 'es', URU: 'uy', URY: 'uy', KSA: 'sa', CPV: 'cv',
   FRA: 'fr', SEN: 'sn', NOR: 'no', PI2: '',
   ARG: 'ar', AUT: 'at', ALG: 'dz', JOR: 'jo',
   POR: 'pt', COL: 'co', UZB: 'uz', PI1: '',
   ENG: 'gb-eng', CRO: 'hr', PAN: 'pa', GHA: 'gh',
+  BIH: 'ba', COD: 'cd', IRQ: 'iq',
   // Possiveis classificados dos playoffs
   TUR: 'tr', UKR: 'ua', WAL: 'gb-wls', GEO: 'ge',
   GRE: 'gr', IRL: 'ie', ISL: 'is', SVK: 'sk',
