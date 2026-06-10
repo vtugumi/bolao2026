@@ -93,9 +93,12 @@ export default function BonusSection() {
     });
   }, []);
 
+  const [saveError, setSaveError] = useState('');
+
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError('');
     try {
       const items = [
         { type: 'CHAMPION', value: champion },
@@ -106,19 +109,29 @@ export default function BonusSection() {
         { type: 'BRAZIL_FIRST_GOAL', value: brazilFirstGoal },
       ].filter(i => i.value);
 
-      const promises = items.map(item =>
-        fetch('/api/predictions/bonus', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(item),
-        })
-      );
-      await Promise.all(promises);
-      setSaved(true);
-      setHasPredictions(true);
-      setOpen(false);
-      setTimeout(() => setSaved(false), 4000);
+      const failed: string[] = [];
+      for (const item of items) {
+        try {
+          const res = await fetch('/api/predictions/bonus', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item),
+          });
+          if (!res.ok) failed.push(item.type);
+        } catch {
+          failed.push(item.type);
+        }
+      }
+
+      if (failed.length > 0) {
+        setSaveError(`Erro ao salvar ${failed.length} palpite(s). Tente novamente.`);
+      } else {
+        setSaved(true);
+        setHasPredictions(true);
+        setOpen(false);
+        setTimeout(() => setSaved(false), 4000);
+      }
     } catch {
-      // ignore
+      setSaveError('Erro ao salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -356,6 +369,7 @@ export default function BonusSection() {
               {saving ? 'Salvando...' : 'Salvar Bonus'}
             </button>
             {saved && <span className="text-emerald-600 text-sm font-medium">Salvo!</span>}
+            {saveError && <span className="text-red-500 text-sm font-medium">{saveError}</span>}
           </div>
         </div>
       )}
