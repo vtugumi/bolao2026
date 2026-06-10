@@ -8,6 +8,7 @@ import Flag from './Flag';
 interface KnockoutBracketProps {
   activeStage?: string;
   onMatchClick?: (matchId: number, stage: string) => void;
+  simulatedMatches?: any[];
 }
 
 function MatchSlot({ match, highlighted, size = 'normal', onClick }: { match: any; highlighted?: boolean; size?: 'small' | 'normal'; onClick?: () => void }) {
@@ -20,35 +21,39 @@ function MatchSlot({ match, highlighted, size = 'normal', onClick }: { match: an
     );
   }
 
-  const homeName = match.homeTeam?.name || 'A definir';
-  const awayName = match.awayTeam?.name || 'A definir';
-  const homeFlag = match.homeTeam?.flagEmoji || '🏳️';
-  const awayFlag = match.awayTeam?.flagEmoji || '🏳️';
+  const homeSimulated = !match.homeTeam && match._simHome;
+  const awaySimulated = !match.awayTeam && match._simAway;
+  const homeTeam = match.homeTeam || match._simHome;
+  const awayTeam = match.awayTeam || match._simAway;
+  const homeName = homeTeam?.name || 'A definir';
+  const awayName = awayTeam?.name || 'A definir';
+  const homeFlag = homeTeam?.flagEmoji || '🏳️';
+  const awayFlag = awayTeam?.flagEmoji || '🏳️';
   const hasResult = match.homeScore != null;
   const homeWon = match.winnerId === match.homeTeamId;
   const awayWon = match.winnerId === match.awayTeamId;
-  const homeHasTeam = !!match.homeTeam;
-  const awayHasTeam = !!match.awayTeam;
+  const homeHasTeam = !!homeTeam;
+  const awayHasTeam = !!awayTeam;
 
   return (
     <div
       onClick={onClick}
       className={`bracket-match bracket-match-${size} border rounded-md overflow-hidden ${onClick ? 'cursor-pointer hover:shadow-md hover:border-emerald-400 transition-all' : ''} ${highlighted ? 'border-emerald-500 shadow-md ring-1 ring-emerald-200' : 'border-gray-300 shadow-sm'}`}>
-      <div className={`bracket-team border-b ${highlighted ? 'border-emerald-200' : 'border-gray-200'} ${homeWon ? 'bg-emerald-50 font-bold text-emerald-800' : awayWon ? 'text-gray-400' : ''}`}>
-        <span className="bracket-flag">{homeHasTeam ? <Flag code={match.homeTeam?.code || ''} emoji={homeFlag} size={16} /> : ''}</span>
-        <span className="bracket-team-name">{homeName}</span>
+      <div className={`bracket-team border-b ${highlighted ? 'border-emerald-200' : 'border-gray-200'} ${homeWon ? 'bg-emerald-50 font-bold text-emerald-800' : awayWon ? 'text-gray-400' : ''} ${homeSimulated ? 'bg-amber-50/50' : ''}`}>
+        <span className="bracket-flag">{homeHasTeam ? <Flag code={homeTeam?.code || ''} emoji={homeFlag} size={16} /> : ''}</span>
+        <span className={`bracket-team-name ${homeSimulated ? 'text-amber-700 italic' : ''}`}>{homeName}</span>
         {hasResult && <span className={`bracket-score ${homeWon ? 'text-emerald-700' : ''}`}>{match.homeScore}</span>}
       </div>
-      <div className={`bracket-team ${awayWon ? 'bg-emerald-50 font-bold text-emerald-800' : homeWon ? 'text-gray-400' : ''}`}>
-        <span className="bracket-flag">{awayHasTeam ? <Flag code={match.awayTeam?.code || ''} emoji={awayFlag} size={16} /> : ''}</span>
-        <span className="bracket-team-name">{awayName}</span>
+      <div className={`bracket-team ${awayWon ? 'bg-emerald-50 font-bold text-emerald-800' : homeWon ? 'text-gray-400' : ''} ${awaySimulated ? 'bg-amber-50/50' : ''}`}>
+        <span className="bracket-flag">{awayHasTeam ? <Flag code={awayTeam?.code || ''} emoji={awayFlag} size={16} /> : ''}</span>
+        <span className={`bracket-team-name ${awaySimulated ? 'text-amber-700 italic' : ''}`}>{awayName}</span>
         {hasResult && <span className={`bracket-score ${awayWon ? 'text-emerald-700' : ''}`}>{match.awayScore}</span>}
       </div>
     </div>
   );
 }
 
-export default function KnockoutBracket({ activeStage, onMatchClick }: KnockoutBracketProps) {
+export default function KnockoutBracket({ activeStage, onMatchClick, simulatedMatches }: KnockoutBracketProps) {
   const [allMatches, setAllMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +83,23 @@ export default function KnockoutBracket({ activeStage, onMatchClick }: KnockoutB
 
   if (loading) return <div className="text-center text-gray-400 text-sm py-8">Carregando chaveamento...</div>;
 
-  const byStage = (stage: string) => allMatches.filter(m => m.stage === stage);
+  const simMap = new Map<number, any>();
+  if (simulatedMatches) {
+    for (const s of simulatedMatches) {
+      simMap.set(s.matchNumber, s);
+    }
+  }
+  const enrichMatch = (m: any) => {
+    const sim = simMap.get(m.matchNumber);
+    if (!sim) return m;
+    return {
+      ...m,
+      _simHome: !m.homeTeam && sim.homeTeam ? sim.homeTeam : undefined,
+      _simAway: !m.awayTeam && sim.awayTeam ? sim.awayTeam : undefined,
+    };
+  };
+
+  const byStage = (stage: string) => allMatches.filter(m => m.stage === stage).map(enrichMatch);
   const r32 = byStage('R32');
   const r16 = byStage('R16');
   const qf = byStage('QF');

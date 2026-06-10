@@ -1,25 +1,55 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { BonusOddsPanel } from './OddsPanel';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+const TOP_SCORERS = [
+  'Mbappé', 'Harry Kane', 'Haaland', 'Lamine Yamal', 'Vini Jr',
+  'Cristiano Ronaldo', 'Endrick', 'Dembélé', 'Olise', 'Ferran Torres',
+  'Salah', 'Julián Álvarez', 'Darwin Núñez', 'Isak',
+];
+
+const BRAZIL_PLAYERS = [
+  // Atacantes
+  'Vinícius Júnior', 'Raphinha', 'Neymar', 'Endrick', 'Martinelli',
+  'Luiz Henrique', 'Matheus Cunha', 'Igor Thiago', 'Rayan',
+  // Meio-campistas
+  'Bruno Guimarães', 'Casemiro', 'Lucas Paquetá', 'Éderson', 'Fabinho', 'Danilo Santos',
+  // Defensores
+  'Marquinhos', 'Gabriel Magalhães', 'Bremer', 'Danilo', 'Alex Sandro',
+  'Léo Pereira', 'Douglas Santos', 'Ibañez',
+  // Goleiros
+  'Alisson', 'Ederson', 'Weverton',
+];
 
 export default function BonusSection() {
   const [open, setOpen] = useState(false);
   const [champion, setChampion] = useState('');
   const [runnerUp, setRunnerUp] = useState('');
   const [topScorer, setTopScorer] = useState('');
+  const [isCustomScorer, setIsCustomScorer] = useState(false);
   const [thirdPlace, setThirdPlace] = useState('');
   const [fourthPlace, setFourthPlace] = useState('');
+  const [brazilFirstGoal, setBrazilFirstGoal] = useState('');
+  const [isCustomBrazilPlayer, setIsCustomBrazilPlayer] = useState(false);
   const [teams, setTeams] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [hasPredictions, setHasPredictions] = useState(false);
   const [cupStarted, setCupStarted] = useState(false);
+  const [bonusOdds, setBonusOdds] = useState<any>(null);
 
   // Load existing bonus predictions + teams list
   useEffect(() => {
+    // Fetch bonus odds
+    fetch('/api/predictions/bonus/odds')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setBonusOdds(data); })
+      .catch(() => {});
+
     Promise.all([
       fetch('/api/predictions/bonus').then(r => r.ok ? r.json() : []),
       fetch('/api/matches?stage=GROUP&groupLabel=A').then(r => r.ok ? r.json() : []),
@@ -29,9 +59,16 @@ export default function BonusSection() {
       for (const b of bonusArr) {
         if (b.type === 'CHAMPION') setChampion(b.value || '');
         if (b.type === 'RUNNER_UP') setRunnerUp(b.value || '');
-        if (b.type === 'TOP_SCORER') setTopScorer(b.value || '');
+        if (b.type === 'TOP_SCORER') {
+          setTopScorer(b.value || '');
+          if (b.value && !TOP_SCORERS.includes(b.value)) setIsCustomScorer(true);
+        }
         if (b.type === 'THIRD_PLACE') setThirdPlace(b.value || '');
         if (b.type === 'FOURTH_PLACE') setFourthPlace(b.value || '');
+        if (b.type === 'BRAZIL_FIRST_GOAL') {
+          setBrazilFirstGoal(b.value || '');
+          if (b.value && !BRAZIL_PLAYERS.includes(b.value)) setIsCustomBrazilPlayer(true);
+        }
       }
       if (bonusArr.length > 0) setHasPredictions(true);
 
@@ -66,6 +103,7 @@ export default function BonusSection() {
         { type: 'TOP_SCORER', value: topScorer },
         { type: 'THIRD_PLACE', value: thirdPlace },
         { type: 'FOURTH_PLACE', value: fourthPlace },
+        { type: 'BRAZIL_FIRST_GOAL', value: brazilFirstGoal },
       ].filter(i => i.value);
 
       const promises = items.map(item =>
@@ -95,21 +133,39 @@ export default function BonusSection() {
   if (thirdPlace) summaryParts.push(`3o: ${thirdPlace}`);
   if (fourthPlace) summaryParts.push(`4o: ${fourthPlace}`);
   if (topScorer) summaryParts.push(`Artilheiro: ${topScorer}`);
+  if (brazilFirstGoal) summaryParts.push(`1o Gol BRA: ${brazilFirstGoal}`);
+
+  const missingBrazilGoal = hasPredictions && !brazilFirstGoal && !cupStarted;
 
   // If already saved and collapsed, show minimal line
   if (hasPredictions && !open) {
     return (
-      <div className="mb-4 flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-        <p className="text-xs text-gray-500">
-          <span className="text-amber-600 font-medium">Bonus:</span> {summaryParts.join(' | ')}
-        </p>
-        {cupStarted ? (
-          <span className="text-xs text-red-400">Bloqueado</span>
-        ) : (
-          <button onClick={() => setOpen(true)} className="text-xs text-amber-600 hover:text-amber-800 underline">
-            editar
+      <div className="mb-4 space-y-2">
+        {missingBrazilGoal && (
+          <button
+            onClick={() => setOpen(true)}
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-green-50 to-yellow-50 border border-green-300 hover:from-green-100 hover:to-yellow-100 transition-all shadow-sm animate-pulse-subtle"
+          >
+            <span className="text-lg">🇧🇷</span>
+            <div className="text-left flex-1">
+              <span className="text-xs font-bold text-green-800">Nova pergunta bonus!</span>
+              <p className="text-[11px] text-green-700">Quem fara o primeiro gol do Brasil? (+50pts) — Clique para responder</p>
+            </div>
+            <span className="text-green-600 text-xs font-semibold">Responder →</span>
           </button>
         )}
+        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+          <p className="text-xs text-gray-500">
+            <span className="text-amber-600 font-medium">Bonus:</span> {summaryParts.join(' | ')}
+          </p>
+          {cupStarted ? (
+            <span className="text-xs text-red-400">Bloqueado</span>
+          ) : (
+            <button onClick={() => setOpen(true)} className="text-xs text-amber-600 hover:text-amber-800 underline">
+              editar
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -137,7 +193,7 @@ export default function BonusSection() {
             <div className="text-left">
               <span className="font-bold text-amber-800 text-sm">Palpites Bonus</span>
               {!open && (
-                <p className="text-xs text-amber-600 mt-0.5">Campeao (+120pts), Vice (+80pts), 3o/4o (+50pts), Artilheiro (+80pts)</p>
+                <p className="text-xs text-amber-600 mt-0.5">Campeao (+120), Vice (+80), 3o/4o (+50), Artilheiro (+80), 1o Gol BRA (+50)</p>
               )}
             </div>
           </div>
@@ -160,6 +216,17 @@ export default function BonusSection() {
                   <option key={t.id} value={t.name}>{t.name}</option>
                 ))}
               </select>
+              {bonusOdds && (
+                <BonusOddsPanel
+                  title="Campeao"
+                  groupOdds={bonusOdds.group?.CHAMPION || []}
+                  rankingOdds={bonusOdds.ranking?.CHAMPION?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
+                  optaOdds={bonusOdds.opta?.CHAMPION?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
+                  marketOdds={bonusOdds.market?.CHAMPION || []}
+                  totalMembers={bonusOdds.totalMembers || 0}
+                  userHasPredicted={bonusOdds.userHasPredicted || false}
+                />
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-amber-800 mb-1">Vice-campeao (+80pts)</label>
@@ -169,6 +236,14 @@ export default function BonusSection() {
                   <option key={t.id} value={t.name}>{t.name}</option>
                 ))}
               </select>
+              {bonusOdds && (
+                <BonusOddsPanel
+                  title="Vice-campeao"
+                  groupOdds={bonusOdds.group?.RUNNER_UP || []}
+                  totalMembers={bonusOdds.totalMembers || 0}
+                  userHasPredicted={bonusOdds.userHasPredicted || false}
+                />
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-amber-800 mb-1">Terceiro lugar (+50pts)</label>
@@ -178,6 +253,14 @@ export default function BonusSection() {
                   <option key={t.id} value={t.name}>{t.name}</option>
                 ))}
               </select>
+              {bonusOdds && (
+                <BonusOddsPanel
+                  title="3o Lugar"
+                  groupOdds={bonusOdds.group?.THIRD_PLACE || []}
+                  totalMembers={bonusOdds.totalMembers || 0}
+                  userHasPredicted={bonusOdds.userHasPredicted || false}
+                />
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-amber-800 mb-1">Quarto lugar (+50pts)</label>
@@ -187,11 +270,83 @@ export default function BonusSection() {
                   <option key={t.id} value={t.name}>{t.name}</option>
                 ))}
               </select>
+              {bonusOdds && (
+                <BonusOddsPanel
+                  title="4o Lugar"
+                  groupOdds={bonusOdds.group?.FOURTH_PLACE || []}
+                  totalMembers={bonusOdds.totalMembers || 0}
+                  userHasPredicted={bonusOdds.userHasPredicted || false}
+                />
+              )}
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-amber-800 mb-1">Artilheiro (+80pts)</label>
-              <input type="text" value={topScorer} onChange={e => setTopScorer(e.target.value)}
-                placeholder="Nome do jogador" className={selectClass} />
+              <select
+                value={isCustomScorer ? '__other__' : topScorer}
+                onChange={e => {
+                  if (e.target.value === '__other__') {
+                    setIsCustomScorer(true);
+                    setTopScorer('');
+                  } else {
+                    setIsCustomScorer(false);
+                    setTopScorer(e.target.value);
+                  }
+                }}
+                className={selectClass}
+              >
+                <option value="">Selecione...</option>
+                {TOP_SCORERS.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+                <option value="__other__">Outro...</option>
+              </select>
+              {isCustomScorer && (
+                <input type="text" value={topScorer} onChange={e => setTopScorer(e.target.value)}
+                  placeholder="Digite o nome do jogador" className={`${selectClass} mt-1`} />
+              )}
+              {bonusOdds && (
+                <BonusOddsPanel
+                  title="Artilheiro"
+                  groupOdds={bonusOdds.group?.TOP_SCORER || []}
+                  marketOdds={bonusOdds.market?.TOP_SCORER || []}
+                  totalMembers={bonusOdds.totalMembers || 0}
+                  userHasPredicted={bonusOdds.userHasPredicted || false}
+                />
+              )}
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-amber-800 mb-1">Primeiro gol do Brasil (+50pts)</label>
+              <select
+                value={isCustomBrazilPlayer ? '__other__' : brazilFirstGoal}
+                onChange={e => {
+                  if (e.target.value === '__other__') {
+                    setIsCustomBrazilPlayer(true);
+                    setBrazilFirstGoal('');
+                  } else {
+                    setIsCustomBrazilPlayer(false);
+                    setBrazilFirstGoal(e.target.value);
+                  }
+                }}
+                className={selectClass}
+              >
+                <option value="">Selecione...</option>
+                {BRAZIL_PLAYERS.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+                <option value="__other__">Outro...</option>
+              </select>
+              {isCustomBrazilPlayer && (
+                <input type="text" value={brazilFirstGoal} onChange={e => setBrazilFirstGoal(e.target.value)}
+                  placeholder="Digite o nome do jogador" className={`${selectClass} mt-1`} />
+              )}
+              {bonusOdds && (
+                <BonusOddsPanel
+                  title="1o Gol Brasil"
+                  groupOdds={bonusOdds.group?.BRAZIL_FIRST_GOAL || []}
+                  totalMembers={bonusOdds.totalMembers || 0}
+                  userHasPredicted={bonusOdds.userHasPredicted || false}
+                />
+              )}
             </div>
           </div>
 

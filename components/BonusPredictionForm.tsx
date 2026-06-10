@@ -5,6 +5,25 @@ import { BonusOddsPanel } from './OddsPanel';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+const TOP_SCORERS = [
+  'Mbappé', 'Harry Kane', 'Haaland', 'Lamine Yamal', 'Vini Jr',
+  'Cristiano Ronaldo', 'Endrick', 'Dembélé', 'Olise', 'Ferran Torres',
+  'Salah', 'Julián Álvarez', 'Darwin Núñez', 'Isak',
+];
+
+const BRAZIL_PLAYERS = [
+  // Atacantes
+  'Vinícius Júnior', 'Raphinha', 'Neymar', 'Endrick', 'Martinelli',
+  'Luiz Henrique', 'Matheus Cunha', 'Igor Thiago', 'Rayan',
+  // Meio-campistas
+  'Bruno Guimarães', 'Casemiro', 'Lucas Paquetá', 'Éderson', 'Fabinho', 'Danilo Santos',
+  // Defensores
+  'Marquinhos', 'Gabriel Magalhães', 'Bremer', 'Danilo', 'Alex Sandro',
+  'Léo Pereira', 'Douglas Santos', 'Ibañez',
+  // Goleiros
+  'Alisson', 'Ederson', 'Weverton',
+];
+
 interface BonusPredictionFormProps {
   initialData?: any;
   onSave?: (data: {
@@ -13,6 +32,7 @@ interface BonusPredictionFormProps {
     topScorer: string;
     thirdPlace: string;
     fourthPlace: string;
+    brazilFirstGoal: string;
   }) => Promise<void>;
   saving?: boolean;
   locked?: boolean;
@@ -24,8 +44,11 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
   const [topScorer, setTopScorer] = useState(initialData?.topScorer || '');
   const [thirdPlace, setThirdPlace] = useState(initialData?.thirdPlace || '');
   const [fourthPlace, setFourthPlace] = useState(initialData?.fourthPlace || '');
+  const [brazilFirstGoal, setBrazilFirstGoal] = useState(initialData?.brazilFirstGoal || '');
   const [teams, setTeams] = useState<{ id: number; name: string; flagEmoji: string }[]>([]);
   const [bonusOdds, setBonusOdds] = useState<any>(null);
+  const [isCustomScorer, setIsCustomScorer] = useState(false);
+  const [isCustomBrazilPlayer, setIsCustomBrazilPlayer] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -55,8 +78,11 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
       setChampion(initialData.champion || '');
       setRunnerUp(initialData.runnerUp || '');
       setTopScorer(initialData.topScorer || '');
+      if (initialData.topScorer && !TOP_SCORERS.includes(initialData.topScorer)) setIsCustomScorer(true);
       setThirdPlace(initialData.thirdPlace || '');
       setFourthPlace(initialData.fourthPlace || '');
+      setBrazilFirstGoal(initialData.brazilFirstGoal || '');
+      if (initialData.brazilFirstGoal && !BRAZIL_PLAYERS.includes(initialData.brazilFirstGoal)) setIsCustomBrazilPlayer(true);
     }
   }, [initialData]);
 
@@ -66,7 +92,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
       return;
     }
     setError('');
-    await onSave?.({ champion, runnerUp, topScorer, thirdPlace, fourthPlace });
+    await onSave?.({ champion, runnerUp, topScorer, thirdPlace, fourthPlace, brazilFirstGoal });
   };
 
   const selectClass = "w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-emerald-500 focus:outline-none disabled:bg-gray-100";
@@ -89,6 +115,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
             title="Campeao"
             groupOdds={bonusOdds.group?.CHAMPION || []}
             rankingOdds={bonusOdds.ranking?.CHAMPION?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
+            optaOdds={bonusOdds.opta?.CHAMPION?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
             marketOdds={bonusOdds.market?.CHAMPION || []}
             totalMembers={bonusOdds.totalMembers || 0}
             userHasPredicted={bonusOdds.userHasPredicted || false}
@@ -111,7 +138,6 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
           <BonusOddsPanel
             title="Vice-campeao"
             groupOdds={bonusOdds.group?.RUNNER_UP || []}
-            rankingOdds={bonusOdds.ranking?.RUNNER_UP?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
             totalMembers={bonusOdds.totalMembers || 0}
             userHasPredicted={bonusOdds.userHasPredicted || false}
           />
@@ -133,7 +159,6 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
           <BonusOddsPanel
             title="3o Lugar"
             groupOdds={bonusOdds.group?.THIRD_PLACE || []}
-            rankingOdds={bonusOdds.ranking?.THIRD_PLACE?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
             totalMembers={bonusOdds.totalMembers || 0}
             userHasPredicted={bonusOdds.userHasPredicted || false}
           />
@@ -155,7 +180,6 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
           <BonusOddsPanel
             title="4o Lugar"
             groupOdds={bonusOdds.group?.FOURTH_PLACE || []}
-            rankingOdds={bonusOdds.ranking?.FOURTH_PLACE?.map((r: any) => ({ value: r.name, flagEmoji: r.flagEmoji, percentage: r.probability })) || []}
             totalMembers={bonusOdds.totalMembers || 0}
             userHasPredicted={bonusOdds.userHasPredicted || false}
           />
@@ -166,14 +190,75 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
         <label className="block text-sm font-semibold text-gray-700 mb-2">
           Artilheiro <span className="text-amber-600 font-normal">(80 pts)</span>
         </label>
-        <input type="text" value={topScorer} onChange={e => setTopScorer(e.target.value)} disabled={locked}
-          placeholder="Nome do jogador"
-          className={selectClass} />
+        <select
+          value={isCustomScorer ? '__other__' : topScorer}
+          onChange={e => {
+            if (e.target.value === '__other__') {
+              setIsCustomScorer(true);
+              setTopScorer('');
+            } else {
+              setIsCustomScorer(false);
+              setTopScorer(e.target.value);
+            }
+          }}
+          disabled={locked}
+          className={selectClass}
+        >
+          <option value="">Selecione...</option>
+          {TOP_SCORERS.map(name => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+          <option value="__other__">Outro...</option>
+        </select>
+        {isCustomScorer && (
+          <input type="text" value={topScorer} onChange={e => setTopScorer(e.target.value)} disabled={locked}
+            placeholder="Digite o nome do jogador"
+            className={`${selectClass} mt-1`} />
+        )}
         {bonusOdds && (
           <BonusOddsPanel
             title="Artilheiro"
             groupOdds={bonusOdds.group?.TOP_SCORER || []}
             marketOdds={bonusOdds.market?.TOP_SCORER || []}
+            totalMembers={bonusOdds.totalMembers || 0}
+            userHasPredicted={bonusOdds.userHasPredicted || false}
+          />
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Primeiro gol do Brasil <span className="text-amber-600 font-normal">(50 pts)</span>
+        </label>
+        <select
+          value={isCustomBrazilPlayer ? '__other__' : brazilFirstGoal}
+          onChange={e => {
+            if (e.target.value === '__other__') {
+              setIsCustomBrazilPlayer(true);
+              setBrazilFirstGoal('');
+            } else {
+              setIsCustomBrazilPlayer(false);
+              setBrazilFirstGoal(e.target.value);
+            }
+          }}
+          disabled={locked}
+          className={selectClass}
+        >
+          <option value="">Selecione...</option>
+          {BRAZIL_PLAYERS.map(name => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+          <option value="__other__">Outro...</option>
+        </select>
+        {isCustomBrazilPlayer && (
+          <input type="text" value={brazilFirstGoal} onChange={e => setBrazilFirstGoal(e.target.value)} disabled={locked}
+            placeholder="Digite o nome do jogador"
+            className={`${selectClass} mt-1`} />
+        )}
+        {bonusOdds && (
+          <BonusOddsPanel
+            title="1o Gol Brasil"
+            groupOdds={bonusOdds.group?.BRAZIL_FIRST_GOAL || []}
             totalMembers={bonusOdds.totalMembers || 0}
             userHasPredicted={bonusOdds.userHasPredicted || false}
           />
@@ -196,6 +281,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
         <p>+50 pontos por acertar o terceiro lugar</p>
         <p>+50 pontos por acertar o quarto lugar</p>
         <p>+80 pontos por acertar o artilheiro</p>
+        <p>+50 pontos por acertar o primeiro gol do Brasil</p>
       </div>
     </div>
   );

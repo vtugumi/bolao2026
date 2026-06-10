@@ -87,8 +87,9 @@ export default function HomePage() {
               <h3 className="font-bold text-amber-800 mb-1">Palpites Bonus (antes da Copa comecar!)</h3>
               <p className="text-gray-600 text-sm">
                 Sua primeira missao: escolha quem sera o <strong>campeao</strong>, o <strong>vice-campeao</strong>,
-                o <strong>terceiro lugar</strong>, o <strong>quarto lugar</strong> e
-                o <strong>artilheiro</strong> da Copa. Esses palpites valem pontos extras e precisam ser
+                o <strong>terceiro lugar</strong>, o <strong>quarto lugar</strong>,
+                o <strong>artilheiro</strong> e quem fara o <strong>primeiro gol do Brasil</strong> na Copa.
+                Esses palpites valem pontos extras e precisam ser
                 feitos <strong>antes do primeiro jogo da Copa</strong> — depois disso, ficam bloqueados.
               </p>
             </div>
@@ -118,8 +119,11 @@ export default function HomePage() {
             <div>
               <h3 className="font-bold text-emerald-800 mb-1">Fase de Mata-mata</h3>
               <p className="text-gray-600 text-sm">
-                Apos a ultima rodada de cada grupo, os confrontos do mata-mata sao definidos
-                e os jogos aparecem automaticamente. Voce palpita o placar ate o inicio de cada jogo.
+                Enquanto a fase de grupos esta rolando, o sistema monta um <strong>chaveamento
+                simulado</strong> baseado nos seus palpites — voce ja pode ir palpitando os jogos
+                do mata-mata! Quando os grupos terminarem de verdade, os confrontos reais
+                substituem os simulados. Se o time que voce palpitou nao se classificou,
+                o palpite daquele jogo e descartado e voce pode refazer.
               </p>
               <div className="mt-2 bg-gray-50 rounded-lg p-3 text-xs text-gray-600 space-y-1">
                 <p><strong>Importante:</strong> No mata-mata, seu palpite vale apenas para o
@@ -217,6 +221,10 @@ export default function HomePage() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Artilheiro correto</span>
                   <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">80 pts</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">1o gol do Brasil correto</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">50 pts</span>
                 </div>
               </div>
               <p className="text-[10px] text-amber-600 mt-3 text-center italic">
