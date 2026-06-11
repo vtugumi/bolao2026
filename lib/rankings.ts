@@ -69,12 +69,21 @@ export async function calculateRankings(userIds?: number[]): Promise<RankedUser[
     if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores
     if (b.bonusHits !== a.bonusHits) return b.bonusHits - a.bonusHits
     if (b.knockoutPoints !== a.knockoutPoints) return b.knockoutPoints - a.knockoutPoints
-    return a.tiebreakHash.localeCompare(b.tiebreakHash)
+    return a.name.localeCompare(b.name)
   })
 
-  // Assign ranks
+  // Assign ranks (same rank for tied users)
   ranked.forEach((user, index) => {
-    user.rank = index + 1
+    if (index === 0) {
+      user.rank = 1
+    } else {
+      const prev = ranked[index - 1]
+      if (user.totalPoints === prev.totalPoints && user.exactScores === prev.exactScores && user.bonusHits === prev.bonusHits && user.knockoutPoints === prev.knockoutPoints) {
+        user.rank = prev.rank
+      } else {
+        user.rank = index + 1
+      }
+    }
   })
 
   return ranked
