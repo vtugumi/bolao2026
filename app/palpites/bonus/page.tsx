@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import BonusPredictionForm from '@/components/BonusPredictionForm';
@@ -16,20 +16,42 @@ interface BonusPrediction {
 }
 
 interface GroupBonusEntry {
+  userId: number;
   userName: string;
   value: string;
   points: number | null;
 }
 
+interface GroupInfo {
+  id: number;
+  name: string;
+}
+
+interface MissingUser {
+  id: number;
+  name: string;
+}
+
 interface GroupBonusData {
   locked: boolean;
   message?: string;
+  groups?: GroupInfo[];
+  membersByGroup?: Record<number, number[]>;
   byType?: Record<string, GroupBonusEntry[]>;
-  missingUsers?: string[];
+  missingUsers?: MissingUser[];
   totalMembers?: number;
 }
 
 const TYPE_LABELS: Record<string, string> = {
+  CHAMPION: 'Campeao',
+  RUNNER_UP: 'Vice',
+  THIRD_PLACE: '3o lugar',
+  FOURTH_PLACE: '4o lugar',
+  TOP_SCORER: 'Artilheiro',
+  BRAZIL_FIRST_GOAL: '1o Gol BRA',
+};
+
+const TYPE_LABELS_FULL: Record<string, string> = {
   CHAMPION: 'Campeao',
   RUNNER_UP: 'Vice-campeao',
   THIRD_PLACE: 'Terceiro lugar',
@@ -56,6 +78,8 @@ export default function BonusPredictionsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [groupBonus, setGroupBonus] = useState<GroupBonusData | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+  const [selectedType, setSelectedType] = useState('CHAMPION');
 
   useEffect(() => {
     if (authLoading) return;
@@ -63,7 +87,6 @@ export default function BonusPredictionsPage() {
 
     const fetchAll = async () => {
       try {
-        // Fetch user's own bonus predictions
         const res = await fetch('/api/predictions/bonus', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
@@ -85,11 +108,13 @@ export default function BonusPredictionsPage() {
           }
         }
 
-        // Fetch group bonus predictions
-        const groupRes = await fetch('/api/predictions/bonus/group');
+        const groupRes = await fetch('/api/predictions/bonus/group', { cache: 'no-store' });
         if (groupRes.ok) {
           const groupData = await groupRes.json();
           setGroupBonus(groupData);
+          if (groupData.groups?.length > 0) {
+            setSelectedGroup(groupData.groups[0].id);
+          }
         }
       } catch (err) {
         console.error('Erro ao carregar palpites bonus:', err);
@@ -100,6 +125,31 @@ export default function BonusPredictionsPage() {
 
     fetchAll();
   }, [user, authLoading]);
+
+  const filteredEntries = useMemo(() => {
+    const entries = groupBonus?.byType?.[selectedType] || [];
+    if (!selectedGroup || !groupBonus?.membersByGroup) return entries;
+    const memberIds = groupBonus.membersByGroup[selectedGroup] || [];
+    const memberSet = new Set(memberIds);
+    return entries.filter(e => memberSet.has(e.userId));
+  }, [groupBonus, selectedGroup, selectedType]);
+
+  const filteredMissing = useMemo(() => {
+    const missing = groupBonus?.missingUsers || [];
+    if (!selectedGroup || !groupBonus?.membersByGroup) return missing.map(u => u.name);
+    const memberIds = groupBonus.membersByGroup[selectedGroup] || [];
+    const memberSet = new Set(memberIds);
+    return missing.filter(u => memberSet.has(u.id)).map(u => u.name);
+  }, [groupBonus, selectedGroup]);
+
+  const popularCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredEntries.forEach(e => {
+      const key = e.value.trim();
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [filteredEntries]);
 
   const handleSave = async (data: {
     champion: string;
@@ -165,13 +215,15 @@ export default function BonusPredictionsPage() {
   }
 
   const isLocked = groupBonus?.locked === true;
+  const groups = groupBonus?.groups || [];
+  const hasMultipleGroups = groups.length > 1;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <h1 className="text-2xl md:text-3xl font-bold text-emerald-800 mb-2">
         Palpites Bonus
       </h1>
-      <p className="text-gray-500 mb-6">
+      <p className="text-gray-500 mb-4">
         {isLocked
           ? 'Os palpites bonus estao bloqueados. Veja o que cada um palpitou!'
           : 'Palpite o campeao, vice-campeao, terceiro lugar, quarto lugar e artilheiro da Copa do Mundo 2026. Esses palpites serao bloqueados apos o inicio do torneio.'
@@ -180,7 +232,7 @@ export default function BonusPredictionsPage() {
 
       {message && (
         <div
-          className={`px-4 py-3 rounded-lg mb-6 text-sm ${
+          className={`px-4 py-3 rounded-lg mb-4 text-sm ${
             message.includes('sucesso')
               ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
               : 'bg-red-50 border border-red-200 text-red-700'
@@ -190,7 +242,6 @@ export default function BonusPredictionsPage() {
         </div>
       )}
 
-      {/* User's own form (only when not locked) */}
       {!isLocked && (
         <BonusPredictionForm
           initialData={bonus || undefined}
@@ -200,66 +251,87 @@ export default function BonusPredictionsPage() {
         />
       )}
 
-      {/* Group predictions (only when locked / Copa started) */}
       {isLocked && groupBonus?.byType && (
-        <div className="space-y-6">
-          {TYPE_ORDER.map(type => {
-            const entries = groupBonus.byType?.[type] || [];
-            if (entries.length === 0) return null;
+        <div>
+          {/* Group tabs */}
+          {hasMultipleGroups && (
+            <div className="flex gap-2 mb-4 overflow-x-auto">
+              {groups.map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => setSelectedGroup(g.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    selectedGroup === g.id
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          )}
 
-            // Count most popular picks
-            const counts: Record<string, number> = {};
-            entries.forEach(e => {
-              const key = e.value.trim();
-              counts[key] = (counts[key] || 0) + 1;
-            });
-            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+          {/* Category toggle */}
+          <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
+            {TYPE_ORDER.map(type => (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  selectedType === type
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                }`}
+              >
+                {TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
 
-            return (
-              <div key={type} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                <h3 className="font-bold text-emerald-700 mb-1">
-                  {TYPE_LABELS[type]}
-                  <span className="text-amber-600 font-normal text-sm ml-2">({TYPE_POINTS[type]} pts)</span>
-                </h3>
+          {/* Selected category content */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h3 className="font-bold text-emerald-700 mb-1">
+              {TYPE_LABELS_FULL[selectedType]}
+              <span className="text-amber-600 font-normal text-sm ml-2">({TYPE_POINTS[selectedType]} pts)</span>
+            </h3>
 
-                {/* Most popular */}
-                {sorted.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {sorted.slice(0, 3).map(([value, count]) => (
-                      <span key={value} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
-                        {value} ({count}x)
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Individual predictions */}
-                <div className="space-y-1">
-                  {entries.map((e, i) => (
-                    <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50">
-                      <span className="text-sm text-gray-700">{e.userName}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">{e.value}</span>
-                        {e.points !== null && (
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                            e.points > 0 ? 'bg-emerald-200 text-emerald-800' : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            {e.points} pts
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {popularCounts.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {popularCounts.slice(0, 3).map(([value, count]) => (
+                  <span key={value} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
+                    {value} ({count}x)
+                  </span>
+                ))}
               </div>
-            );
-          })}
+            )}
 
-          {/* Users who didn't predict */}
-          {groupBonus.missingUsers && groupBonus.missingUsers.length > 0 && (
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+            <div className="space-y-1">
+              {filteredEntries.map((e, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50">
+                  <span className="text-sm text-gray-700">{e.userName}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">{e.value}</span>
+                    {e.points !== null && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                        e.points > 0 ? 'bg-emerald-200 text-emerald-800' : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {e.points} pts
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {filteredEntries.length === 0 && (
+                <p className="text-sm text-gray-400 py-2">Nenhum palpite nesta categoria.</p>
+              )}
+            </div>
+          </div>
+
+          {filteredMissing.length > 0 && (
+            <div className="mt-4 bg-gray-50 rounded-xl border border-gray-200 p-4">
               <p className="text-sm text-gray-500">
-                Nao fizeram palpites bonus: {groupBonus.missingUsers.join(', ')}
+                Nao fizeram palpites bonus: {filteredMissing.join(', ')}
               </p>
             </div>
           )}
