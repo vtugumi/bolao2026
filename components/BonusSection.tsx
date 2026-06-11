@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from './AuthProvider';
 import { BonusOddsPanel } from './OddsPanel';
 
@@ -191,7 +192,9 @@ export default function BonusSection() {
             <span className="text-amber-600 font-medium">Bonus:</span> {summaryParts.join(' | ')}
           </p>
           {cupStarted ? (
-            <span className="text-xs text-red-400">Bloqueado</span>
+            <Link href="/palpites/bonus" className="text-xs text-amber-600 hover:text-amber-800 underline">
+              Ver palpites de todos →
+            </Link>
           ) : (
             <button onClick={() => setOpen(true)} className="text-xs text-amber-600 hover:text-amber-800 underline">
               editar
@@ -205,8 +208,11 @@ export default function BonusSection() {
   // If cup started and no predictions, show locked message
   if (cupStarted && !hasPredictions) {
     return (
-      <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-100">
+      <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-100 flex items-center justify-between">
         <p className="text-xs text-red-500">Palpites bonus bloqueados - a Copa ja comecou</p>
+        <Link href="/palpites/bonus" className="text-xs text-amber-600 hover:text-amber-800 underline">
+          Ver palpites de todos →
+        </Link>
       </div>
     );
   }
