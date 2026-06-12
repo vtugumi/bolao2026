@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
       }, { status: 502 })
     }
 
+    const apiMatchCodes = finishedMatches.map(m => `${m.homeTeamTla}-${m.awayTeamTla}`)
+    console.log(`[sync] API returned ${finishedMatches.length} finished matches: ${apiMatchCodes.join(', ')}`)
+
     if (finishedMatches.length === 0) {
       return NextResponse.json({ message: 'No finished matches found', synced: 0 })
     }
@@ -52,6 +55,9 @@ export async function GET(request: NextRequest) {
         awayTeam: { select: { id: true, code: true } },
       },
     })
+
+    const unscoredCodes = unscoredMatches.map(m => `${m.homeTeam?.code}-${m.awayTeam?.code}`)
+    console.log(`[sync] ${unscoredMatches.length} unscored matches in DB: ${unscoredCodes.slice(0, 10).join(', ')}`)
 
     if (unscoredMatches.length === 0) {
       return NextResponse.json({ message: 'All matches already have results', synced: 0 })
@@ -66,12 +72,16 @@ export async function GET(request: NextRequest) {
     }
 
     const synced: string[] = []
+    const unmatched: string[] = []
 
     for (const fm of finishedMatches) {
       // Find our match by team codes
       const key = `${fm.homeTeamTla}-${fm.awayTeamTla}`
       const ourMatch = matchLookup.get(key)
-      if (!ourMatch) continue  // Already scored or not in our system
+      if (!ourMatch) {
+        unmatched.push(key)
+        continue
+      }
 
       // For knockout: use regularTime score (90 min) for prediction comparison
       // The prediction system scores based on 90-min result
@@ -172,12 +182,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    if (unmatched.length > 0) {
+      console.log(`[sync] Unmatched API codes (already scored or code mismatch): ${unmatched.join(', ')}`)
+    }
+
     return NextResponse.json({
       message: synced.length > 0
         ? `${synced.length} resultado(s) sincronizado(s)`
         : 'Nenhum resultado novo para sincronizar',
       synced: synced.length,
       details: synced,
+      debug: { apiMatches: apiMatchCodes, unscoredInDb: unscoredCodes, unmatched },
     })
   } catch (error) {
     console.error('Erro no sync de resultados:', error)
