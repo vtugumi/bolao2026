@@ -31,6 +31,31 @@ export default function AdminResultadosPage() {
   const [matches, setMatches] = useState<MatchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStage, setSelectedStage] = useState('ALL');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ message: string; details?: string[] } | null>(null);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch('/api/admin/sync', { method: 'POST' });
+      const data = await res.json();
+      setSyncResult({ message: data.message || data.error, details: data.details });
+      if (data.synced > 0) {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (selectedStage !== 'ALL') params.set('stage', selectedStage);
+        const r = await fetch(`/api/matches?${params.toString()}`);
+        const refreshed = await r.json();
+        setMatches(Array.isArray(refreshed) ? refreshed : refreshed.matches || []);
+        setLoading(false);
+      }
+    } catch {
+      setSyncResult({ message: 'Erro de conexao ao sincronizar.' });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -53,7 +78,32 @@ export default function AdminResultadosPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-emerald-800 mb-4">Gerenciar Resultados</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-emerald-800">Gerenciar Resultados</h1>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+        >
+          {syncing ? (
+            <>
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              Sincronizando...
+            </>
+          ) : 'Sincronizar agora'}
+        </button>
+      </div>
+
+      {syncResult && (
+        <div className={`mb-4 p-3 rounded-lg text-sm ${syncResult.details && syncResult.details.length > 0 ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-blue-50 border border-blue-200 text-blue-800'}`}>
+          <p className="font-medium">{syncResult.message}</p>
+          {syncResult.details && syncResult.details.length > 0 && (
+            <ul className="mt-1 text-xs space-y-0.5">
+              {syncResult.details.map((d, i) => <li key={i}>{d}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-6">
         {STAGE_OPTIONS.map(s => (
