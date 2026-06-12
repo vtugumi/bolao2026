@@ -19,6 +19,7 @@ export const SCORING = {
     TOP_SCORER: 80,
     THIRD_PLACE: 50,
     FOURTH_PLACE: 50,
+    BRAZIL_FIRST_GOAL: 50,
   },
 } as const
 

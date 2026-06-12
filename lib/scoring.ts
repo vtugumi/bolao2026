@@ -1,7 +1,7 @@
 // Scoring rules:
 // GROUP STAGE: 0 (no pred), 0 (wrong), 2 (right outcome, wrong score), 5 (exact)
 // KNOCKOUT: 0 (no pred), 0 (wrong all), 5 (right qualifier, wrong score), 8 (exact + right qualifier)
-// BONUS: champion 120, runner-up 80, top scorer 80, third place 50, fourth place 50
+// BONUS: defined in constants.ts SCORING.BONUS
 
 import { SCORING } from './constants'
 
@@ -60,6 +60,7 @@ const BONUS_POINTS: Record<string, number> = {
   TOP_SCORER: SCORING.BONUS.TOP_SCORER,
   THIRD_PLACE: SCORING.BONUS.THIRD_PLACE,
   FOURTH_PLACE: SCORING.BONUS.FOURTH_PLACE,
+  BRAZIL_FIRST_GOAL: SCORING.BONUS.BRAZIL_FIRST_GOAL,
 }
 
 export function scoreBonusPrediction(

@@ -11,6 +11,7 @@ interface BonusData {
   topScorer?: string;
   thirdPlace?: string;
   fourthPlace?: string;
+  brazilFirstGoal?: string;
 }
 
 interface UserBonusPrediction {
@@ -28,6 +29,7 @@ const TYPE_LABELS: Record<string, string> = {
   THIRD_PLACE: 'Terceiro lugar',
   FOURTH_PLACE: 'Quarto lugar',
   TOP_SCORER: 'Artilheiro',
+  BRAZIL_FIRST_GOAL: '1o Gol do Brasil',
 };
 
 const TYPE_POINTS: Record<string, number> = {
@@ -36,6 +38,7 @@ const TYPE_POINTS: Record<string, number> = {
   THIRD_PLACE: 50,
   FOURTH_PLACE: 50,
   TOP_SCORER: 80,
+  BRAZIL_FIRST_GOAL: 50,
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -44,9 +47,10 @@ const TYPE_ICONS: Record<string, string> = {
   THIRD_PLACE: '\u{1F949}',
   FOURTH_PLACE: '4\u{FE0F}\u{20E3}',
   TOP_SCORER: '\u{26BD}',
+  BRAZIL_FIRST_GOAL: '\u{1F1E7}\u{1F1F7}',
 };
 
-const ALL_BONUS_TYPES = ['CHAMPION', 'RUNNER_UP', 'THIRD_PLACE', 'FOURTH_PLACE', 'TOP_SCORER'];
+const ALL_BONUS_TYPES = ['CHAMPION', 'RUNNER_UP', 'THIRD_PLACE', 'FOURTH_PLACE', 'TOP_SCORER', 'BRAZIL_FIRST_GOAL'];
 
 export default function AdminBonusPage() {
   const [champion, setChampion] = useState('');
@@ -54,6 +58,7 @@ export default function AdminBonusPage() {
   const [topScorer, setTopScorer] = useState('');
   const [thirdPlace, setThirdPlace] = useState('');
   const [fourthPlace, setFourthPlace] = useState('');
+  const [brazilFirstGoal, setBrazilFirstGoal] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -71,6 +76,7 @@ export default function AdminBonusPage() {
       setTopScorer(bonusData.topScorer || '');
       setThirdPlace(bonusData.thirdPlace || '');
       setFourthPlace(bonusData.fourthPlace || '');
+      setBrazilFirstGoal(bonusData.brazilFirstGoal || '');
       setAllPredictions(predData.predictions || []);
     })
     .catch(console.error)
@@ -86,7 +92,7 @@ export default function AdminBonusPage() {
       const res = await fetch('/api/admin/bonus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ champion, runnerUp, topScorer, thirdPlace, fourthPlace }),
+        body: JSON.stringify({ champion, runnerUp, topScorer, thirdPlace, fourthPlace, brazilFirstGoal }),
       });
 
       if (res.ok) {
@@ -251,6 +257,20 @@ export default function AdminBonusPage() {
           />
         </div>
 
+        <div>
+          <label htmlFor="brazilFirstGoal" className="block text-sm font-medium text-gray-700 mb-1">
+            1o Gol do Brasil (50 pts)
+          </label>
+          <input
+            id="brazilFirstGoal"
+            type="text"
+            value={brazilFirstGoal}
+            onChange={(e) => setBrazilFirstGoal(e.target.value)}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+            placeholder="Nome do jogador que fez o 1o gol"
+          />
+        </div>
+
         <button
           type="submit"
           disabled={saving}
@@ -273,7 +293,7 @@ export default function AdminBonusPage() {
           {ALL_BONUS_TYPES.map(type => {
             const preds = byType[type] || [];
             if (preds.length === 0) return null;
-            const allowManualOverride = type === 'TOP_SCORER';
+            const allowManualOverride = type === 'TOP_SCORER' || type === 'BRAZIL_FIRST_GOAL';
 
             return (
               <div key={type} className="mb-6">

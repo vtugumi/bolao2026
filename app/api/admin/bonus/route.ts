@@ -9,6 +9,7 @@ const BONUS_KEYS: Record<string, string> = {
   topScorer: 'TOP_SCORER',
   thirdPlace: 'THIRD_PLACE',
   fourthPlace: 'FOURTH_PLACE',
+  brazilFirstGoal: 'BRAZIL_FIRST_GOAL',
 }
 
 const SETTING_KEYS: Record<string, string> = {
@@ -17,6 +18,7 @@ const SETTING_KEYS: Record<string, string> = {
   topScorer: 'officialTopScorer',
   thirdPlace: 'officialThirdPlace',
   fourthPlace: 'officialFourthPlace',
+  brazilFirstGoal: 'officialBrazilFirstGoal',
 }
 
 export async function GET(request: NextRequest) {
@@ -47,6 +49,7 @@ export async function GET(request: NextRequest) {
       topScorer: null,
       thirdPlace: null,
       fourthPlace: null,
+      brazilFirstGoal: null,
     }
 
     for (const setting of settings) {
