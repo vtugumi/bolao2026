@@ -23,26 +23,25 @@ interface SimulatedQualifier {
   awayTeam: { id: number; name: string; code: string; flagEmoji: string; source: string } | null
 }
 
-// R32 bracket: 16 matches mapped to group positions
-// Format: [homeSource, awaySource]
-// 1A = winner of group A, 2B = runner-up of group B, 3X = third-place from possible groups
+// R32 bracket: 16 matches (73-88) mapped to group positions per FIFA regulations
+// 1A = winner of group A, 2B = runner-up of group B, 3rd = third-place (assigned via combination table)
 const R32_BRACKET: Array<{ matchIndex: number; home: string; away: string }> = [
-  { matchIndex: 0,  home: '1A', away: '3rd' },    // 1A vs best 3rd
-  { matchIndex: 1,  home: '2A', away: '2B' },      // 2A vs 2B
-  { matchIndex: 2,  home: '1C', away: '2F' },      // 1C vs 2F
-  { matchIndex: 3,  home: '1E', away: '3rd' },     // 1E vs best 3rd
-  { matchIndex: 4,  home: '1D', away: '3rd' },     // 1D vs best 3rd
-  { matchIndex: 5,  home: '2D', away: '2G' },      // 2D vs 2G
-  { matchIndex: 6,  home: '1F', away: '2C' },      // 1F vs 2C
-  { matchIndex: 7,  home: '1I', away: '3rd' },     // 1I vs best 3rd
-  { matchIndex: 8,  home: '1G', away: '3rd' },     // 1G vs best 3rd
-  { matchIndex: 9,  home: '2E', away: '2I' },      // 2E vs 2I
-  { matchIndex: 10, home: '1H', away: '2J' },     // 1H vs 2J
-  { matchIndex: 11, home: '1J', away: '2H' },     // 1J vs 2H
-  { matchIndex: 12, home: '1B', away: '3rd' },    // 1B vs best 3rd
-  { matchIndex: 13, home: '2K', away: '2L' },     // 2K vs 2L
-  { matchIndex: 14, home: '1K', away: '3rd' },    // 1K vs best 3rd
-  { matchIndex: 15, home: '1L', away: '3rd' },    // 1L vs best 3rd
+  { matchIndex: 0,  home: '2A', away: '2B' },     // M73: fixed
+  { matchIndex: 1,  home: '1E', away: '3rd' },    // M74: variable
+  { matchIndex: 2,  home: '1F', away: '2C' },     // M75: fixed
+  { matchIndex: 3,  home: '1C', away: '2F' },     // M76: fixed
+  { matchIndex: 4,  home: '1I', away: '3rd' },    // M77: variable
+  { matchIndex: 5,  home: '2E', away: '2I' },     // M78: fixed
+  { matchIndex: 6,  home: '1A', away: '3rd' },    // M79: variable
+  { matchIndex: 7,  home: '1L', away: '3rd' },    // M80: variable
+  { matchIndex: 8,  home: '1D', away: '3rd' },    // M81: variable
+  { matchIndex: 9,  home: '1G', away: '3rd' },    // M82: variable
+  { matchIndex: 10, home: '2K', away: '2L' },     // M83: fixed
+  { matchIndex: 11, home: '1H', away: '2J' },     // M84: fixed
+  { matchIndex: 12, home: '1B', away: '3rd' },    // M85: variable
+  { matchIndex: 13, home: '1J', away: '2H' },     // M86: fixed
+  { matchIndex: 14, home: '1K', away: '3rd' },    // M87: variable
+  { matchIndex: 15, home: '2D', away: '2G' },     // M88: fixed
 ]
 
 const GROUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
@@ -158,8 +157,25 @@ export async function calculateSimulatedBracket(userId: number) {
   })
 
   const qualifiedThirds = thirdPlace.slice(0, 8)
-  // Track which 3rd-place teams qualified, assign to R32 matches in order
-  let thirdIdx = 0
+
+  // Build third-place assignment using FIFA combination table
+  const { THIRD_PLACE_COMBINATIONS, THIRD_PLACE_MATCH_ORDER } = await import('./third-place-combinations')
+
+  const thirdByGroup = new Map<string, TeamStanding>()
+  for (const t of qualifiedThirds) {
+    thirdByGroup.set(t.groupLabel, t)
+  }
+
+  const qualifiedGroupKey = qualifiedThirds.map(t => t.groupLabel).sort().join('')
+  const combinationValue = THIRD_PLACE_COMBINATIONS[qualifiedGroupKey]
+
+  // Map matchNumber → group whose 3rd-place team plays there
+  const thirdPlaceForMatch = new Map<number, string>()
+  if (combinationValue) {
+    THIRD_PLACE_MATCH_ORDER.forEach((matchNum, i) => {
+      thirdPlaceForMatch.set(matchNum, combinationValue[i])
+    })
+  }
 
   // Get our R32 match numbers (73-88)
   const r32Matches = await prisma.match.findMany({
@@ -195,10 +211,12 @@ export async function calculateSimulatedBracket(userId: number) {
 
     // Resolve away team
     if (bracket.away === '3rd') {
-      if (thirdIdx < qualifiedThirds.length) {
-        const third = qualifiedThirds[thirdIdx]
-        awayTeam = { id: third.teamId, name: third.teamName, code: third.teamCode, flagEmoji: third.flagEmoji, source: `3o ${third.groupLabel}` }
-        thirdIdx++
+      const assignedGroup = thirdPlaceForMatch.get(match.matchNumber)
+      if (assignedGroup) {
+        const third = thirdByGroup.get(assignedGroup)
+        if (third) {
+          awayTeam = { id: third.teamId, name: third.teamName, code: third.teamCode, flagEmoji: third.flagEmoji, source: `3o ${third.groupLabel}` }
+        }
       }
     } else if (bracket.away.startsWith('2')) {
       const group = bracket.away[1]

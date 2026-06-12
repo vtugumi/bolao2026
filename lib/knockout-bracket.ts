@@ -1,13 +1,14 @@
 // Maps matchNumber -> { nextMatch, slot }
 // R32: matches 73-88, R16: 89-96, QF: 97-100, SF: 101-102, 3RD: 103, FINAL: 104
+// FIFA R16 pairings: W73vsW75, W74vsW77, W76vsW78, W79vsW80, W81vsW82, W83vsW84, W85vsW87, W86vsW88
 
 export const KNOCKOUT_BRACKET: Record<number, { nextMatch: number; slot: 'home' | 'away' }> = {
-  // R32 -> R16
+  // R32 -> R16 (non-consecutive FIFA pairings)
   73: { nextMatch: 89, slot: 'home' },
-  74: { nextMatch: 89, slot: 'away' },
-  75: { nextMatch: 90, slot: 'home' },
-  76: { nextMatch: 90, slot: 'away' },
-  77: { nextMatch: 91, slot: 'home' },
+  75: { nextMatch: 89, slot: 'away' },
+  74: { nextMatch: 90, slot: 'home' },
+  77: { nextMatch: 90, slot: 'away' },
+  76: { nextMatch: 91, slot: 'home' },
   78: { nextMatch: 91, slot: 'away' },
   79: { nextMatch: 92, slot: 'home' },
   80: { nextMatch: 92, slot: 'away' },
@@ -16,8 +17,8 @@ export const KNOCKOUT_BRACKET: Record<number, { nextMatch: number; slot: 'home' 
   83: { nextMatch: 94, slot: 'home' },
   84: { nextMatch: 94, slot: 'away' },
   85: { nextMatch: 95, slot: 'home' },
-  86: { nextMatch: 95, slot: 'away' },
-  87: { nextMatch: 96, slot: 'home' },
+  87: { nextMatch: 95, slot: 'away' },
+  86: { nextMatch: 96, slot: 'home' },
   88: { nextMatch: 96, slot: 'away' },
   // R16 -> QF
   89: { nextMatch: 97, slot: 'home' },
@@ -33,7 +34,7 @@ export const KNOCKOUT_BRACKET: Record<number, { nextMatch: number; slot: 'home' 
   98: { nextMatch: 101, slot: 'away' },
   99: { nextMatch: 102, slot: 'home' },
   100: { nextMatch: 102, slot: 'away' },
-  // SF -> Final (winners) and 3RD (losers)
+  // SF -> Final
   101: { nextMatch: 104, slot: 'home' },
   102: { nextMatch: 104, slot: 'away' },
 }

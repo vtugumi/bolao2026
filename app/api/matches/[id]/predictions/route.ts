@@ -53,11 +53,18 @@ export async function GET(
     const groupIds = userGroups.map(g => g.groupId)
     const groupMembers = await prisma.groupMember.findMany({
       where: { groupId: { in: groupIds } },
-      select: { userId: true, group: { select: { id: true, name: true } } },
+      select: { userId: true, groupId: true, group: { select: { id: true, name: true } } },
     })
 
     const memberUserIds = [...new Set(groupMembers.map(m => m.userId))]
-    const groupNames = [...new Map(groupMembers.map(m => [m.group.id, m.group.name])).values()]
+
+    const groups = [...new Map(groupMembers.map(m => [m.group.id, { id: m.group.id, name: m.group.name }])).values()]
+
+    const membersByGroup: Record<number, number[]> = {}
+    for (const gm of groupMembers) {
+      if (!membersByGroup[gm.groupId]) membersByGroup[gm.groupId] = []
+      membersByGroup[gm.groupId].push(gm.userId)
+    }
 
     // Fetch predictions from all group members for this match
     const predictions = await prisma.prediction.findMany({
@@ -83,7 +90,8 @@ export async function GET(
 
     return NextResponse.json({
       predictions: predictions.map(p => formatPrediction(p, hasResult, winnerMap)),
-      groups: groupNames,
+      groups,
+      membersByGroup,
     })
   } catch (error) {
     console.error('Erro ao buscar palpites do jogo:', error)

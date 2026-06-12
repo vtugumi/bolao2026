@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Flag from './Flag';
 import OddsPanel from './OddsPanel';
 
@@ -89,7 +89,9 @@ export default function MatchCard({ match, showPrediction, odds, onSavePredictio
   // Expandable predictions section
   const [expanded, setExpanded] = useState(false);
   const [groupPredictions, setGroupPredictions] = useState<GroupPrediction[]>([]);
-  const [groupNames, setGroupNames] = useState<string[]>([]);
+  const [groups, setGroups] = useState<Array<{ id: number; name: string }>>([]);
+  const [membersByGroup, setMembersByGroup] = useState<Record<number, number[]>>({});
+  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
   const [loadingPredictions, setLoadingPredictions] = useState(false);
   const [predictionsFetched, setPredictionsFetched] = useState(false);
 
@@ -152,7 +154,10 @@ export default function MatchCard({ match, showPrediction, odds, onSavePredictio
         if (res.ok) {
           const data = await res.json();
           setGroupPredictions(data.predictions || []);
-          setGroupNames(data.groups || []);
+          const g = data.groups || [];
+          setGroups(g);
+          setMembersByGroup(data.membersByGroup || {});
+          if (g.length > 0) setSelectedGroup(g[0].id);
           setPredictionsFetched(true);
         }
       } catch {
@@ -164,6 +169,14 @@ export default function MatchCard({ match, showPrediction, odds, onSavePredictio
   };
 
   const canExpand = matchStarted || hasResult;
+  const hasMultipleGroups = groups.length > 1;
+
+  const filteredPredictions = useMemo(() => {
+    if (!selectedGroup || !hasMultipleGroups) return groupPredictions;
+    const memberIds = membersByGroup[selectedGroup] || [];
+    const memberSet = new Set(memberIds);
+    return groupPredictions.filter(p => memberSet.has(p.userId));
+  }, [groupPredictions, selectedGroup, membersByGroup, hasMultipleGroups]);
 
   return (
     <div id={`match-card-${match.id}`} className={`rounded-xl shadow-sm hover:shadow-md transition-shadow transition-[box-shadow,ring] ${isSimulated ? 'bg-amber-50 border-2 border-amber-300' : 'bg-white border border-gray-100'}`}>
@@ -259,13 +272,30 @@ export default function MatchCard({ match, showPrediction, odds, onSavePredictio
             </div>
           ) : (
             <div className="p-3">
-              {groupNames.length > 0 && (
+              {hasMultipleGroups && (
+                <div className="flex gap-1.5 mb-2 overflow-x-auto">
+                  {groups.map(g => (
+                    <button
+                      key={g.id}
+                      onClick={(e) => { e.stopPropagation(); setSelectedGroup(g.id); }}
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors ${
+                        selectedGroup === g.id
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      {g.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!hasMultipleGroups && groups.length === 1 && (
                 <p className="text-[10px] text-gray-400 mb-2">
-                  📋 {groupNames.join(', ')}
+                  {groups[0].name}
                 </p>
               )}
               <div className="space-y-1.5">
-                {groupPredictions.map((gp, i) => (
+                {filteredPredictions.map((gp, i) => (
                   <div
                     key={i}
                     className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100"
@@ -293,13 +323,13 @@ export default function MatchCard({ match, showPrediction, odds, onSavePredictio
                   </div>
                 ))}
               </div>
-              {hasResult && groupPredictions.length > 1 && (
+              {hasResult && filteredPredictions.length > 1 && (
                 <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between px-1">
                   <span className="text-[10px] text-gray-400">
-                    🎯 Placares exatos: {groupPredictions.filter(p => p.points !== null && p.points >= 5).length}
+                    Placares exatos: {filteredPredictions.filter(p => p.points !== null && p.points >= 5).length}
                   </span>
                   <span className="text-[10px] text-gray-400">
-                    Media: {(groupPredictions.reduce((sum, p) => sum + (p.points ?? 0), 0) / groupPredictions.length).toFixed(1)} pts
+                    Media: {(filteredPredictions.reduce((sum, p) => sum + (p.points ?? 0), 0) / filteredPredictions.length).toFixed(1)} pts
                   </span>
                 </div>
               )}
