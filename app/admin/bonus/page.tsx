@@ -33,12 +33,12 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_POINTS: Record<string, number> = {
-  CHAMPION: 120,
-  RUNNER_UP: 80,
-  THIRD_PLACE: 50,
-  FOURTH_PLACE: 50,
-  TOP_SCORER: 80,
-  BRAZIL_FIRST_GOAL: 50,
+  CHAMPION: 60,
+  RUNNER_UP: 40,
+  THIRD_PLACE: 25,
+  FOURTH_PLACE: 25,
+  TOP_SCORER: 40,
+  BRAZIL_FIRST_GOAL: 25,
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -189,7 +189,7 @@ export default function AdminBonusPage() {
       >
         <div>
           <label htmlFor="champion" className="block text-sm font-medium text-gray-700 mb-1">
-            Campeao (120 pts)
+            Campeao (60 pts)
           </label>
           <input
             id="champion"
@@ -203,7 +203,7 @@ export default function AdminBonusPage() {
 
         <div>
           <label htmlFor="runnerUp" className="block text-sm font-medium text-gray-700 mb-1">
-            Vice-campeao (80 pts)
+            Vice-campeao (40 pts)
           </label>
           <input
             id="runnerUp"
@@ -217,7 +217,7 @@ export default function AdminBonusPage() {
 
         <div>
           <label htmlFor="thirdPlace" className="block text-sm font-medium text-gray-700 mb-1">
-            Terceiro lugar (50 pts)
+            Terceiro lugar (25 pts)
           </label>
           <input
             id="thirdPlace"
@@ -231,7 +231,7 @@ export default function AdminBonusPage() {
 
         <div>
           <label htmlFor="fourthPlace" className="block text-sm font-medium text-gray-700 mb-1">
-            Quarto lugar (50 pts)
+            Quarto lugar (25 pts)
           </label>
           <input
             id="fourthPlace"
@@ -245,7 +245,7 @@ export default function AdminBonusPage() {
 
         <div>
           <label htmlFor="topScorer" className="block text-sm font-medium text-gray-700 mb-1">
-            Artilheiro (80 pts)
+            Artilheiro (40 pts)
           </label>
           <input
             id="topScorer"
@@ -259,7 +259,7 @@ export default function AdminBonusPage() {
 
         <div>
           <label htmlFor="brazilFirstGoal" className="block text-sm font-medium text-gray-700 mb-1">
-            1o Gol do Brasil (50 pts)
+            1o Gol do Brasil (25 pts)
           </label>
           <input
             id="brazilFirstGoal"
