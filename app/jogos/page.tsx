@@ -13,9 +13,32 @@ import SimulatedR32 from '@/components/SimulatedR32';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+type TabType = 'today' | 'upcoming' | 'groups' | 'knockout';
+
+function groupMatchesByDate(matches: any[]): { date: string; label: string; matches: any[] }[] {
+  const groups: Record<string, any[]> = {};
+  for (const m of matches) {
+    const d = new Date(m.dateTime);
+    const key = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(m);
+  }
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const tomorrowStr = new Date(now.getTime() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  return Object.entries(groups).map(([date, matches]) => {
+    const d = new Date(date + 'T12:00:00');
+    let label: string;
+    if (date === todayStr) label = 'Hoje';
+    else if (date === tomorrowStr) label = 'Amanha';
+    else label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+    return { date, label, matches };
+  });
+}
+
 export default function JogosPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'groups' | 'knockout'>('groups');
+  const [activeTab, setActiveTab] = useState<TabType>('today');
   const [selectedGroup, setSelectedGroup] = useState('A');
   const [selectedStage, setSelectedStage] = useState('R32');
   const [matches, setMatches] = useState<any[]>([]);
@@ -31,7 +54,11 @@ export default function JogosPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (activeTab === 'groups') {
+      if (activeTab === 'today') {
+        params.set('view', 'today');
+      } else if (activeTab === 'upcoming') {
+        params.set('view', 'upcoming');
+      } else if (activeTab === 'groups') {
         params.set('stage', 'GROUP');
         params.set('groupLabel', selectedGroup);
       } else {
@@ -86,6 +113,10 @@ export default function JogosPage() {
   // Fetch odds for current matches
   const fetchOdds = useCallback(async () => {
     if (!user) return;
+    if (activeTab === 'today' || activeTab === 'upcoming') {
+      // For date views, fetch odds per match after matches load
+      return;
+    }
     try {
       const params = new URLSearchParams();
       if (activeTab === 'groups') {
@@ -181,27 +212,58 @@ export default function JogosPage() {
       {user && <BonusSection />}
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
-        <button onClick={() => setActiveTab('groups')}
-          className={`px-6 py-3 font-semibold text-sm transition-colors ${activeTab === 'groups' ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-gray-500 hover:text-gray-700'}`}>
-          Fase de Grupos
-        </button>
-        <button onClick={() => setActiveTab('knockout')}
-          className={`px-6 py-3 font-semibold text-sm transition-colors ${activeTab === 'knockout' ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-gray-500 hover:text-gray-700'}`}>
-          Mata-mata
-        </button>
+      <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
+        {([
+          { key: 'today' as TabType, label: 'Jogos do Dia' },
+          { key: 'upcoming' as TabType, label: 'Proximos Jogos' },
+          { key: 'groups' as TabType, label: 'Fase de Grupos' },
+          { key: 'knockout' as TabType, label: 'Mata-mata' },
+        ]).map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            className={`px-4 md:px-6 py-3 font-semibold text-sm transition-colors whitespace-nowrap ${activeTab === tab.key ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-gray-500 hover:text-gray-700'}`}>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Navigation */}
-      {activeTab === 'groups' ? (
+      {/* Navigation - only for groups/knockout */}
+      {activeTab === 'groups' && (
         <GroupNav activeGroup={selectedGroup} onGroupChange={setSelectedGroup} />
-      ) : (
+      )}
+      {activeTab === 'knockout' && (
         <StageNav activeStage={selectedStage} onStageChange={setSelectedStage} />
       )}
 
       {/* Content */}
       <div className="mt-6">
-        {activeTab === 'groups' ? (
+        {(activeTab === 'today' || activeTab === 'upcoming') ? (
+          /* === JOGOS DO DIA / PROXIMOS === */
+          <div className="max-w-3xl mx-auto">
+            {loading ? (
+              <div className="flex justify-center py-12"><LoadingSpinner /></div>
+            ) : matches.length === 0 ? (
+              <p className="text-center text-gray-500 py-12">
+                {activeTab === 'today' ? 'Nenhum jogo hoje.' : 'Nenhum jogo futuro encontrado.'}
+              </p>
+            ) : (
+              groupMatchesByDate(matches).map(group => (
+                <div key={group.date} className="mb-8">
+                  <h2 className="text-lg font-bold text-emerald-700 mb-3 capitalize border-b border-emerald-100 pb-1">
+                    {group.label}
+                    <span className="text-sm font-normal text-gray-400 ml-2">
+                      {group.matches.length} {group.matches.length === 1 ? 'jogo' : 'jogos'}
+                    </span>
+                  </h2>
+                  <div className="space-y-4">
+                    {group.matches.map((match: any) => (
+                      <MatchCard key={match.id} match={match} showPrediction={!!user} odds={matchOdds[match.id] || null} onSavePrediction={handleSavePrediction} />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : activeTab === 'groups' ? (
           /* === GRUPOS: 2 colunas (jogos + tabela) === */
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3 space-y-4">
