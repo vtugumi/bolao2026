@@ -15,11 +15,12 @@ import SimulatedR32 from '@/components/SimulatedR32';
 
 type TabType = 'today' | 'upcoming' | 'groups' | 'knockout';
 
+// Group matches by FIFA matchday date (venue timezone, approximated as UTC-7 for WC 2026)
 function groupMatchesByDate(matches: any[]): { date: string; label: string; matches: any[] }[] {
   const groups: Record<string, any[]> = {};
   for (const m of matches) {
     const d = new Date(m.dateTime);
-    const key = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    const key = d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     if (!groups[key]) groups[key] = [];
     groups[key].push(m);
   }

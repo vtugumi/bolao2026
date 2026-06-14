@@ -15,8 +15,11 @@ export async function GET(request: NextRequest) {
     const view = searchParams.get('view')
 
     if (view === 'today') {
+      // Use today's date in BRT but match window based on venue timezone (UTC-7)
+      // All WC 2026 venues are in North America (UTC-7 to UTC-4)
+      // Using UTC-7 ensures a 9pm Vancouver match stays on the correct FIFA matchday
       const brDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-      const startOfDay = new Date(`${brDate}T00:00:00-03:00`)
+      const startOfDay = new Date(`${brDate}T07:00:00Z`) // midnight UTC-7
       const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
       where.dateTime = { gte: startOfDay, lt: endOfDay }
     } else if (view === 'upcoming') {
