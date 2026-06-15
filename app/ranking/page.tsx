@@ -10,8 +10,8 @@ interface RankingEntry {
   name: string;
   totalPoints: number;
   exactScores: number;
-  correctResults: number;
-  bonusPoints: number;
+  bonusHits: number;
+  knockoutPoints: number;
   position: number;
 }
 
@@ -69,8 +69,8 @@ export default function RankingPage() {
             name: r.name,
             totalPoints: r.totalPoints,
             exactScores: r.exactScores,
-            correctResults: r.bonusHits,
-            bonusPoints: r.knockoutPoints,
+            bonusHits: r.bonusHits,
+            knockoutPoints: r.knockoutPoints,
             position: r.rank,
           }));
           setRankings(mapped);

@@ -106,7 +106,13 @@ export default function UserRankingPage() {
             {bonusPredictions.map((b: any) => (
               <div key={b.type} className="flex justify-between items-center">
                 <span className="text-gray-600">
-                  {b.type === 'CHAMPION' ? 'Campeao' : b.type === 'RUNNER_UP' ? 'Vice-campeao' : 'Artilheiro'}
+                  {b.type === 'CHAMPION' ? 'Campeao'
+                    : b.type === 'RUNNER_UP' ? 'Vice-campeao'
+                    : b.type === 'TOP_SCORER' ? 'Artilheiro'
+                    : b.type === 'THIRD_PLACE' ? '3o lugar'
+                    : b.type === 'FOURTH_PLACE' ? '4o lugar'
+                    : b.type === 'BRAZIL_FIRST_GOAL' ? '1o Gol do Brasil'
+                    : b.type}
                 </span>
                 <div className="text-right">
                   <span className="font-medium">{b.value}</span>
