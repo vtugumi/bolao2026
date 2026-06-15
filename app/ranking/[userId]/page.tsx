@@ -103,7 +103,10 @@ export default function UserRankingPage() {
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-700 mb-3">Palpites Bonus</h2>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
-            {bonusPredictions.map((b: any) => (
+            {['CHAMPION', 'RUNNER_UP', 'THIRD_PLACE', 'FOURTH_PLACE', 'TOP_SCORER', 'BRAZIL_FIRST_GOAL']
+              .map(type => bonusPredictions.find((b: any) => b.type === type))
+              .filter(Boolean)
+              .map((b: any) => (
               <div key={b.type} className="flex justify-between items-center">
                 <span className="text-gray-600">
                   {b.type === 'CHAMPION' ? 'Campeao'
