@@ -19,6 +19,7 @@ model User {
   bonusPredictions BonusPrediction[]
   createdGroups    PrivateGroup[]    @relation("GroupCreator")
   groupMembers     GroupMember[]
+  activityLogs     ActivityLog[]
 }
 
 model Team {
@@ -109,4 +110,13 @@ model GroupMember {
   user     User     @relation(fields: [userId], references: [id])
   group    PrivateGroup @relation(fields: [groupId], references: [id])
   @@unique([userId, groupId])
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, timestamp])
 }

@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { AuthGuard } from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import Heartbeat from '@/components/Heartbeat';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${inter.className} flex flex-col min-h-screen bg-gray-50 text-gray-900`}>
         <AuthProvider>
+          <Heartbeat />
           <Navbar />
           <AuthGuard>
             <main className="flex-1">{children}</main>
