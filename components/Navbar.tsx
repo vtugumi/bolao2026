@@ -89,9 +89,9 @@ export default function Navbar() {
 
             {!loading && user && (
               <div className="flex items-center gap-4">
-                <span className="text-emerald-200 text-sm">
+                <Link href="/conta" className="text-emerald-200 text-sm hover:text-white transition-colors">
                   {user.name}
-                </span>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded-lg text-sm transition-colors"
@@ -183,9 +183,10 @@ export default function Navbar() {
                   </Link>
                 )}
                 <div className="border-t border-emerald-700 pt-2 mt-2">
-                  <span className="block py-2 px-3 text-emerald-200 text-sm">
-                    {user.name}
-                  </span>
+                  <Link href="/conta" className="block py-2 px-3 text-emerald-200 text-sm hover:text-white transition-colors"
+                    onClick={() => setMenuOpen(false)}>
+                    {user.name} &middot; Minha Conta
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="block w-full text-left py-2 px-3 rounded-lg hover:bg-emerald-700 transition-colors"
