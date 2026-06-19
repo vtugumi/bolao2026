@@ -42,7 +42,7 @@ export async function GET(
           },
         },
       },
-      orderBy: { match: { matchNumber: 'asc' } },
+      orderBy: { match: { dateTime: 'asc' } },
     })
 
     // Only show bonus predictions after tournament starts
