@@ -28,6 +28,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Skip outside match hours (04:00-15:00 UTC) to let Neon compute auto-suspend
+    // WC 2026 matches kick off ~16:00-01:00 UTC, can end by ~03:30 UTC
+    const hour = new Date().getUTCHours()
+    if (hour >= 4 && hour < 15) {
+      return NextResponse.json({ message: 'Outside match window, skipping sync', skipped: true })
+    }
+
     // Fetch finished matches from external API
     let finishedMatches
     try {

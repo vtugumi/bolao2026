@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 
-const INTERVAL_MS = 60_000;
+const INTERVAL_MS = 300_000;
 
 export default function Heartbeat() {
   const { user } = useAuth();
