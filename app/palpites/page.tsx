@@ -29,6 +29,7 @@ export default function PalpitesPage() {
   const { user, loading: authLoading } = useAuth();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'stage' | 'date'>('date');
 
   useEffect(() => {
     if (authLoading) return;
@@ -79,14 +80,42 @@ export default function PalpitesPage() {
     (p) => p.match.homeScore !== null
   ).length;
 
-  const groupedByStage: Record<string, Prediction[]> = {};
-  predictions.forEach((p) => {
-    const stage = p.match.stage === 'GROUP'
-      ? `Grupo ${p.match.groupLabel || ''}`
-      : p.match.stage.replace(/_/g, ' ');
-    if (!groupedByStage[stage]) groupedByStage[stage] = [];
-    groupedByStage[stage].push(p);
-  });
+  const grouped: { key: string; label: string; preds: Prediction[] }[] = [];
+  if (viewMode === 'stage') {
+    const byStage: Record<string, Prediction[]> = {};
+    predictions.forEach((p) => {
+      const stage = p.match.stage === 'GROUP'
+        ? `Grupo ${p.match.groupLabel || ''}`
+        : p.match.stage.replace(/_/g, ' ');
+      if (!byStage[stage]) byStage[stage] = [];
+      byStage[stage].push(p);
+    });
+    for (const [stage, preds] of Object.entries(byStage)) {
+      grouped.push({ key: stage, label: stage, preds });
+    }
+  } else {
+    const sorted = [...predictions].sort(
+      (a, b) => new Date(a.match.dateTime).getTime() - new Date(b.match.dateTime).getTime()
+    );
+    const byDate: Record<string, Prediction[]> = {};
+    for (const p of sorted) {
+      const d = new Date(p.match.dateTime);
+      const key = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(p);
+    }
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    const tomorrowStr = new Date(now.getTime() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    for (const [date, preds] of Object.entries(byDate)) {
+      const d = new Date(date + 'T12:00:00');
+      let label: string;
+      if (date === todayStr) label = 'Hoje';
+      else if (date === tomorrowStr) label = 'Amanha';
+      else label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+      grouped.push({ key: date, label, preds });
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -118,7 +147,31 @@ export default function PalpitesPage() {
         </div>
       </div>
 
-      {/* Palpites por fase */}
+      {/* Toggle view mode */}
+      {predictions.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <div className="inline-flex rounded-lg border border-gray-200 bg-white shadow-sm">
+            <button
+              onClick={() => setViewMode('date')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors ${
+                viewMode === 'date' ? 'bg-emerald-700 text-white' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Por Data
+            </button>
+            <button
+              onClick={() => setViewMode('stage')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors ${
+                viewMode === 'stage' ? 'bg-emerald-700 text-white' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Por Fase
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Palpites */}
       {predictions.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">
@@ -132,13 +185,13 @@ export default function PalpitesPage() {
           </Link>
         </div>
       ) : (
-        Object.entries(groupedByStage).map(([stage, preds]) => (
-          <div key={stage} className="mb-8">
+        grouped.map((g) => (
+          <div key={g.key} className="mb-8">
             <h2 className="text-lg font-semibold text-gray-700 mb-3 capitalize">
-              {stage}
+              {g.label}
             </h2>
             <div className="space-y-2">
-              {preds.map((p) => (
+              {g.preds.map((p) => (
                 <Link
                   key={p.id}
                   href={`/jogos/${p.matchId}`}

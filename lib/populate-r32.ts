@@ -224,11 +224,16 @@ export async function populateR32Bracket(): Promise<{
       data: updateData,
     })
 
+    // Clear stale predictions — the matchup changed, old predictions are invalid
+    const deleted = await prisma.prediction.deleteMany({
+      where: { matchId: r32Match.id },
+    })
+
     const homeTeam = allTeams.find(t => t.id === newHomeTeamId)
     const awayTeam = allTeams.find(t => t.id === newAwayTeamId)
     const homeName = homeTeam?.name ?? (r32Match.homeTeamId ? 'kept' : 'TBD')
     const awayName = awayTeam?.name ?? (r32Match.awayTeamId ? 'kept' : 'TBD')
-    updated.push(`M${bracket.matchNumber}: ${bracket.home}=${homeName} vs ${bracket.away}=${awayName}`)
+    updated.push(`M${bracket.matchNumber}: ${bracket.home}=${homeName} vs ${bracket.away}=${awayName} (${deleted.count} palpites limpos)`)
   }
 
   return {

@@ -152,12 +152,16 @@ export async function GET(request: NextRequest) {
             where: { matchNumber: bracketEntry.nextMatch },
           })
           if (nextMatch) {
-            await prisma.match.update({
-              where: { id: nextMatch.id },
-              data: bracketEntry.slot === 'home'
-                ? { homeTeamId: winnerId }
-                : { awayTeamId: winnerId },
-            })
+            const currentTeamId = bracketEntry.slot === 'home' ? nextMatch.homeTeamId : nextMatch.awayTeamId
+            if (currentTeamId !== winnerId) {
+              await prisma.match.update({
+                where: { id: nextMatch.id },
+                data: bracketEntry.slot === 'home'
+                  ? { homeTeamId: winnerId }
+                  : { awayTeamId: winnerId },
+              })
+              await prisma.prediction.deleteMany({ where: { matchId: nextMatch.id } })
+            }
           }
         }
 
@@ -172,12 +176,16 @@ export async function GET(request: NextRequest) {
               where: { matchNumber: thirdEntry.nextMatch },
             })
             if (thirdMatch) {
-              await prisma.match.update({
-                where: { id: thirdMatch.id },
-                data: thirdEntry.slot === 'home'
-                  ? { homeTeamId: loserId }
-                  : { awayTeamId: loserId },
-              })
+              const currentTeamId = thirdEntry.slot === 'home' ? thirdMatch.homeTeamId : thirdMatch.awayTeamId
+              if (currentTeamId !== loserId) {
+                await prisma.match.update({
+                  where: { id: thirdMatch.id },
+                  data: thirdEntry.slot === 'home'
+                    ? { homeTeamId: loserId }
+                    : { awayTeamId: loserId },
+                })
+                await prisma.prediction.deleteMany({ where: { matchId: thirdMatch.id } })
+              }
             }
           }
         }
