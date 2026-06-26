@@ -13,7 +13,7 @@ import SimulatedR32 from '@/components/SimulatedR32';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-type TabType = 'today' | 'upcoming' | 'groups' | 'knockout';
+type TabType = 'upcoming' | 'recent' | 'groups' | 'knockout';
 
 // Group matches by FIFA matchday date (venue timezone, approximated as UTC-7 for WC 2026)
 function groupMatchesByDate(matches: any[]): { date: string; label: string; matches: any[] }[] {
@@ -39,7 +39,7 @@ function groupMatchesByDate(matches: any[]): { date: string; label: string; matc
 
 export default function JogosPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('today');
+  const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [selectedGroup, setSelectedGroup] = useState('A');
   const [selectedStage, setSelectedStage] = useState('R32');
   const [matches, setMatches] = useState<any[]>([]);
@@ -55,10 +55,10 @@ export default function JogosPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (activeTab === 'today') {
-        params.set('view', 'today');
-      } else if (activeTab === 'upcoming') {
+      if (activeTab === 'upcoming') {
         params.set('view', 'upcoming');
+      } else if (activeTab === 'recent') {
+        params.set('view', 'recent');
       } else if (activeTab === 'groups') {
         params.set('stage', 'GROUP');
         params.set('groupLabel', selectedGroup);
@@ -112,19 +112,19 @@ export default function JogosPage() {
   }, [fetchStandings]);
 
   // Fetch odds for current matches
-  const fetchOdds = useCallback(async () => {
+  const fetchOdds = useCallback(async (matchIdsList?: number[]) => {
     if (!user) return;
-    if (activeTab === 'today' || activeTab === 'upcoming') {
-      // For date views, fetch odds per match after matches load
-      return;
-    }
     try {
       const params = new URLSearchParams();
-      if (activeTab === 'groups') {
+      if (matchIdsList && matchIdsList.length > 0) {
+        params.set('matchIds', matchIdsList.join(','));
+      } else if (activeTab === 'groups') {
         params.set('stage', 'GROUP');
         params.set('groupLabel', selectedGroup);
-      } else {
+      } else if (activeTab === 'knockout') {
         params.set('stage', selectedStage);
+      } else {
+        return;
       }
       const res = await fetch(`/api/matches/odds?${params.toString()}`);
       if (res.ok) {
@@ -141,8 +141,18 @@ export default function JogosPage() {
   }, [activeTab, selectedGroup, selectedStage, user]);
 
   useEffect(() => {
-    fetchOdds();
-  }, [fetchOdds]);
+    if (activeTab === 'groups' || activeTab === 'knockout') {
+      fetchOdds();
+    }
+  }, [fetchOdds, activeTab]);
+
+  // For date-based tabs, fetch odds after matches load
+  useEffect(() => {
+    if ((activeTab === 'upcoming' || activeTab === 'recent') && matches.length > 0 && user) {
+      const ids = matches.map((m: any) => m.id);
+      fetchOdds(ids);
+    }
+  }, [matches, activeTab, user, fetchOdds]);
 
   // Fetch simulated knockout data when in knockout tab
   const fetchSimulatedKnockout = useCallback(async () => {
@@ -215,8 +225,8 @@ export default function JogosPage() {
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
         {([
-          { key: 'today' as TabType, label: 'Jogos do Dia' },
-          { key: 'upcoming' as TabType, label: 'Proximos Jogos' },
+          { key: 'upcoming' as TabType, label: 'Próximos Jogos' },
+          { key: 'recent' as TabType, label: 'Últimos Jogos' },
           { key: 'groups' as TabType, label: 'Fase de Grupos' },
           { key: 'knockout' as TabType, label: 'Mata-mata' },
         ]).map(tab => (
@@ -237,14 +247,14 @@ export default function JogosPage() {
 
       {/* Content */}
       <div className="mt-6">
-        {(activeTab === 'today' || activeTab === 'upcoming') ? (
-          /* === JOGOS DO DIA / PROXIMOS === */
+        {(activeTab === 'upcoming' || activeTab === 'recent') ? (
+          /* === PROXIMOS / ULTIMOS JOGOS === */
           <div className="max-w-3xl mx-auto">
             {loading ? (
               <div className="flex justify-center py-12"><LoadingSpinner /></div>
             ) : matches.length === 0 ? (
               <p className="text-center text-gray-500 py-12">
-                {activeTab === 'today' ? 'Nenhum jogo hoje.' : 'Nenhum jogo futuro encontrado.'}
+                {activeTab === 'upcoming' ? 'Nenhum jogo futuro encontrado.' : 'Nenhum jogo finalizado ainda.'}
               </p>
             ) : (
               groupMatchesByDate(matches).map(group => (

@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const user = await getSessionUser(request)
     const { searchParams } = new URL(request.url)
     const matchId = searchParams.get('matchId')
+    const matchIdsParam = searchParams.get('matchIds')
     const stage = searchParams.get('stage')
     const groupLabel = searchParams.get('groupLabel')
 
@@ -15,6 +16,8 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
     if (matchId) {
       where.id = parseInt(matchId)
+    } else if (matchIdsParam) {
+      where.id = { in: matchIdsParam.split(',').map(Number).filter(n => !isNaN(n)) }
     } else {
       if (stage) where.stage = stage
       if (groupLabel) where.groupLabel = groupLabel

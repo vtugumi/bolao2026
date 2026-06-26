@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
     const view = searchParams.get('view')
 
+    let orderOverride: Record<string, string> | null = null
+
     if (view === 'today') {
       const brDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
       const startOfDay = new Date(`${brDate}T07:00:00Z`)
@@ -54,6 +56,9 @@ export async function GET(request: NextRequest) {
       where.dateTime = { gte: startOfDay, lt: endOfDay }
     } else if (view === 'upcoming') {
       where.homeScore = null
+    } else if (view === 'recent') {
+      where.homeScore = { not: null }
+      orderOverride = { dateTime: 'desc' }
     } else {
       if (stage) where.stage = stage
       if (groupLabel) where.groupLabel = groupLabel
@@ -81,7 +86,7 @@ export async function GET(request: NextRequest) {
             }
           : {}),
       },
-      orderBy: { dateTime: 'asc' },
+      orderBy: orderOverride || { dateTime: 'asc' },
     })
 
     const hasR32 = matches.some(m => m.stage === 'R32')
