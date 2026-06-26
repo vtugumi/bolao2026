@@ -92,10 +92,10 @@ export default function KnockoutBracket({ activeStage, onMatchClick, simulatedMa
     }
   }
 
-  // R32→R16 feeder map: R16 matchNumber → [R32 matchNumber, R32 matchNumber]
+  // R32→R16 feeder map: R16 matchNumber → [R32 matchNumber, R32 matchNumber] (official FIFA)
   const R16_FEEDERS: Record<number, number[]> = {
-    89: [73, 75], 90: [74, 77], 91: [76, 78], 92: [79, 80],
-    93: [81, 82], 94: [83, 84], 95: [85, 87], 96: [86, 88],
+    89: [74, 77], 90: [73, 75], 91: [76, 78], 92: [79, 80],
+    93: [83, 84], 94: [81, 82], 95: [86, 88], 96: [85, 87],
   };
 
   const matchByNumber = new Map<number, any>();
@@ -130,21 +130,31 @@ export default function KnockoutBracket({ activeStage, onMatchClick, simulatedMa
   };
 
   const byStage = (stage: string) => allMatches.filter(m => m.stage === stage).map(enrichMatch);
-  const r32 = byStage('R32');
-  const r16 = byStage('R16');
-  const qf = byStage('QF');
+  const r32All = byStage('R32');
+  const r16All = byStage('R16');
+  const qfAll = byStage('QF');
   const sf = byStage('SF');
   const final_ = byStage('FINAL')[0];
   const third = byStage('3RD')[0];
 
-  const leftR32 = r32.slice(0, 8);
-  const rightR32 = r32.slice(8, 16);
-  const leftR16 = r16.slice(0, 4);
-  const rightR16 = r16.slice(4, 8);
-  const leftQF = qf.slice(0, 2);
-  const rightQF = qf.slice(2, 4);
-  const leftSF = sf.slice(0, 1);
-  const rightSF = sf.slice(1, 2);
+  const mn = (arr: any[], num: number) => arr.find((m: any) => m.matchNumber === num);
+
+  // Visual order per official FIFA bracket (adjacent pairs feed same R16)
+  // Left: M74,M77→M89 | M73,M75→M90 | M76,M78→M91 | M79,M80→M92
+  const leftR32 = [mn(r32All,74), mn(r32All,77), mn(r32All,73), mn(r32All,75), mn(r32All,76), mn(r32All,78), mn(r32All,79), mn(r32All,80)].filter(Boolean);
+  // Right: M83,M84→M93 | M81,M82→M94 | M86,M88→M95 | M85,M87→M96
+  const rightR32 = [mn(r32All,83), mn(r32All,84), mn(r32All,81), mn(r32All,82), mn(r32All,86), mn(r32All,88), mn(r32All,85), mn(r32All,87)].filter(Boolean);
+
+  // R16: left M89,M90,M91,M92 | right M93,M94,M95,M96
+  const leftR16 = [mn(r16All,89), mn(r16All,90), mn(r16All,91), mn(r16All,92)].filter(Boolean);
+  const rightR16 = [mn(r16All,93), mn(r16All,94), mn(r16All,95), mn(r16All,96)].filter(Boolean);
+
+  // QF: M97(W89vsW90) + M99(W91vsW92) on left | M98(W93vsW94) + M100(W95vsW96) on right
+  const leftQF = [mn(qfAll,97), mn(qfAll,99)].filter(Boolean);
+  const rightQF = [mn(qfAll,98), mn(qfAll,100)].filter(Boolean);
+
+  const leftSF = [mn(sf,101)].filter(Boolean);
+  const rightSF = [mn(sf,102)].filter(Boolean);
 
   const hl = (stage: string) => activeStage === stage;
 
