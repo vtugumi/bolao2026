@@ -139,22 +139,20 @@ export default function KnockoutBracket({ activeStage, onMatchClick, simulatedMa
 
   const mn = (arr: any[], num: number) => arr.find((m: any) => m.matchNumber === num);
 
-  // Visual order per official FIFA bracket (adjacent pairs feed same R16)
-  // Left: M83,M84→M93 | M81,M82→M94 | M86,M88→M95 | M85,M87→M96
-  const leftR32 = [mn(r32All,83), mn(r32All,84), mn(r32All,81), mn(r32All,82), mn(r32All,86), mn(r32All,88), mn(r32All,85), mn(r32All,87)].filter(Boolean);
-  // Right: M74,M77→M89 | M73,M75→M90 | M76,M78→M91 | M79,M80→M92
-  const rightR32 = [mn(r32All,74), mn(r32All,77), mn(r32All,73), mn(r32All,75), mn(r32All,76), mn(r32All,78), mn(r32All,79), mn(r32All,80)].filter(Boolean);
+  // Visual layout: split by SF path (no crossing lines)
+  // LEFT feeds SF M101: upper(M74,M77→M89, M73,M75→M90 → QF M97) + lower(M83,M84→M93, M81,M82→M94 → QF M98)
+  const leftR32 = [mn(r32All,74), mn(r32All,77), mn(r32All,73), mn(r32All,75), mn(r32All,83), mn(r32All,84), mn(r32All,81), mn(r32All,82)].filter(Boolean);
+  // RIGHT feeds SF M102: upper(M76,M78→M91, M79,M80→M92 → QF M99) + lower(M86,M88→M95, M85,M87→M96 → QF M100)
+  const rightR32 = [mn(r32All,76), mn(r32All,78), mn(r32All,79), mn(r32All,80), mn(r32All,86), mn(r32All,88), mn(r32All,85), mn(r32All,87)].filter(Boolean);
 
-  // R16: left M93,M94,M95,M96 | right M89,M90,M91,M92
-  const leftR16 = [mn(r16All,93), mn(r16All,94), mn(r16All,95), mn(r16All,96)].filter(Boolean);
-  const rightR16 = [mn(r16All,89), mn(r16All,90), mn(r16All,91), mn(r16All,92)].filter(Boolean);
+  const leftR16 = [mn(r16All,89), mn(r16All,90), mn(r16All,93), mn(r16All,94)].filter(Boolean);
+  const rightR16 = [mn(r16All,91), mn(r16All,92), mn(r16All,95), mn(r16All,96)].filter(Boolean);
 
-  // QF: M98(W93vsW94) + M100(W95vsW96) on left | M97(W89vsW90) + M99(W91vsW92) on right
-  const leftQF = [mn(qfAll,98), mn(qfAll,100)].filter(Boolean);
-  const rightQF = [mn(qfAll,97), mn(qfAll,99)].filter(Boolean);
+  const leftQF = [mn(qfAll,97), mn(qfAll,98)].filter(Boolean);
+  const rightQF = [mn(qfAll,99), mn(qfAll,100)].filter(Boolean);
 
-  const leftSF = [mn(sf,102)].filter(Boolean);
-  const rightSF = [mn(sf,101)].filter(Boolean);
+  const leftSF = [mn(sf,101)].filter(Boolean);
+  const rightSF = [mn(sf,102)].filter(Boolean);
 
   const hl = (stage: string) => activeStage === stage;
 
