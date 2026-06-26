@@ -302,10 +302,11 @@ export default function JogosPage() {
                 <p className="text-center text-gray-500 py-12">Nenhum jogo encontrado.</p>
               ) : (
                 matches.map((match: any) => {
-                  // Overlay simulated teams when real teams aren't set
+                  // Overlay simulated teams only for R32 (group-based)
+                  // R16+ should show "A definir" until feeder matches are played
                   const simMatch = simulatedKnockout.find((s: any) => s.matchNumber === match.matchNumber);
                   const enrichedMatch = { ...match };
-                  if (simMatch) {
+                  if (simMatch && match.stage === 'R32') {
                     if (!match.homeTeam && simMatch.homeTeam) {
                       enrichedMatch.homeTeam = { ...simMatch.homeTeam, simulated: true };
                       enrichedMatch.simulatedHomeTeamId = simMatch.homeTeam.id;

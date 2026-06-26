@@ -23,6 +23,8 @@ function MatchSlot({ match, highlighted, size = 'normal', onClick }: { match: an
 
   const homeSimulated = !match.homeTeam && match._simHome;
   const awaySimulated = !match.awayTeam && match._simAway;
+  const homeProvisional = !homeSimulated && match._provisionalHome && match.homeTeam;
+  const awayProvisional = !awaySimulated && match._provisionalAway && match.awayTeam;
   const homeTeam = match.homeTeam || match._simHome;
   const awayTeam = match.awayTeam || match._simAway;
   const homeName = homeTeam?.name || 'A definir';
@@ -39,14 +41,14 @@ function MatchSlot({ match, highlighted, size = 'normal', onClick }: { match: an
     <div
       onClick={onClick}
       className={`bracket-match bracket-match-${size} border rounded-md overflow-hidden ${onClick ? 'cursor-pointer hover:shadow-md hover:border-emerald-400 transition-all' : ''} ${highlighted ? 'border-emerald-500 shadow-md ring-1 ring-emerald-200' : 'border-gray-300 shadow-sm'}`}>
-      <div className={`bracket-team border-b ${highlighted ? 'border-emerald-200' : 'border-gray-200'} ${homeWon ? 'bg-emerald-50 font-bold text-emerald-800' : awayWon ? 'text-gray-400' : ''} ${homeSimulated ? 'bg-amber-50/50' : ''}`}>
+      <div className={`bracket-team border-b ${highlighted ? 'border-emerald-200' : 'border-gray-200'} ${homeWon ? 'bg-emerald-50 font-bold text-emerald-800' : awayWon ? 'text-gray-400' : ''} ${homeSimulated ? 'bg-amber-50/50' : ''} ${homeProvisional ? 'bg-sky-50/60' : ''}`}>
         <span className="bracket-flag">{homeHasTeam ? <Flag code={homeTeam?.code || ''} emoji={homeFlag} size={16} /> : ''}</span>
-        <span className={`bracket-team-name ${homeSimulated ? 'text-amber-700 italic' : ''}`}>{homeName}</span>
+        <span className={`bracket-team-name ${homeSimulated ? 'text-amber-700 italic' : ''} ${homeProvisional ? 'text-sky-700 italic' : ''}`}>{homeName}</span>
         {hasResult && <span className={`bracket-score ${homeWon ? 'text-emerald-700' : ''}`}>{match.homeScore}</span>}
       </div>
-      <div className={`bracket-team ${awayWon ? 'bg-emerald-50 font-bold text-emerald-800' : homeWon ? 'text-gray-400' : ''} ${awaySimulated ? 'bg-amber-50/50' : ''}`}>
+      <div className={`bracket-team ${awayWon ? 'bg-emerald-50 font-bold text-emerald-800' : homeWon ? 'text-gray-400' : ''} ${awaySimulated ? 'bg-amber-50/50' : ''} ${awayProvisional ? 'bg-sky-50/60' : ''}`}>
         <span className="bracket-flag">{awayHasTeam ? <Flag code={awayTeam?.code || ''} emoji={awayFlag} size={16} /> : ''}</span>
-        <span className={`bracket-team-name ${awaySimulated ? 'text-amber-700 italic' : ''}`}>{awayName}</span>
+        <span className={`bracket-team-name ${awaySimulated ? 'text-amber-700 italic' : ''} ${awayProvisional ? 'text-sky-700 italic' : ''}`}>{awayName}</span>
         {hasResult && <span className={`bracket-score ${awayWon ? 'text-emerald-700' : ''}`}>{match.awayScore}</span>}
       </div>
     </div>
@@ -89,7 +91,35 @@ export default function KnockoutBracket({ activeStage, onMatchClick, simulatedMa
       simMap.set(s.matchNumber, s);
     }
   }
+
+  // R32→R16 feeder map: R16 matchNumber → [R32 matchNumber, R32 matchNumber]
+  const R16_FEEDERS: Record<number, number[]> = {
+    89: [73, 75], 90: [74, 77], 91: [76, 78], 92: [79, 80],
+    93: [81, 82], 94: [83, 84], 95: [85, 87], 96: [86, 88],
+  };
+
+  const matchByNumber = new Map<number, any>();
+  for (const m of allMatches) matchByNumber.set(m.matchNumber, m);
+
+  // Check if a match's feeder matches all have results
+  const feedersPlayed = (matchNumber: number): boolean => {
+    const feeders = R16_FEEDERS[matchNumber];
+    if (feeders) {
+      return feeders.every(fn => { const f = matchByNumber.get(fn); return f && f.homeScore != null; });
+    }
+    // For QF+: check if the match already has real teams set in the DB
+    return false;
+  };
+
   const enrichMatch = (m: any) => {
+    // Only enrich with simulated data if:
+    // - R32: always (group-based, teams already set in DB so this rarely applies)
+    // - R16: only if both feeder R32 matches have been played
+    // - QF+: only if both teams are already set in DB
+    if (m.stage !== 'R32' && !m.homeTeam && !m.awayTeam) {
+      if (m.stage === 'R16' && !feedersPlayed(m.matchNumber)) return m;
+      if (['QF', 'SF', 'FINAL', '3RD'].includes(m.stage) && !m.homeTeamId && !m.awayTeamId) return m;
+    }
     const sim = simMap.get(m.matchNumber);
     if (!sim) return m;
     return {
@@ -221,6 +251,16 @@ export default function KnockoutBracket({ activeStage, onMatchClick, simulatedMa
           <span>Quartas</span>
           <span>Oitavas</span>
           <span>16 avos</span>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-5 mt-3 text-[10px] text-gray-500">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded border border-gray-300 bg-white" /> Classificado
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded border border-sky-300 bg-sky-50" /> Provisório
+          </span>
         </div>
       </div>
     </div>

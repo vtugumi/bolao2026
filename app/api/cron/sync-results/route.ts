@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getFinishedMatches } from '@/lib/football-api'
 import { scorePrediction } from '@/lib/scoring'
 import { KNOCKOUT_BRACKET, THIRD_PLACE_BRACKET } from '@/lib/knockout-bracket'
+import { populateR32Bracket } from '@/lib/populate-r32'
 
 const CRON_SECRET = process.env.CRON_SECRET || ''
 
@@ -193,12 +194,21 @@ export async function GET(request: NextRequest) {
       console.log(`[sync] Unmatched API codes (already scored or code mismatch): ${unmatched.join(', ')}`)
     }
 
+    // Populate R32 bracket with qualified teams from group standings
+    let r32Result = null
+    try {
+      r32Result = await populateR32Bracket()
+    } catch (r32Error) {
+      console.error('[sync] R32 population error:', r32Error)
+    }
+
     return NextResponse.json({
       message: synced.length > 0
         ? `${synced.length} resultado(s) sincronizado(s)`
         : 'Nenhum resultado novo para sincronizar',
       synced: synced.length,
       details: synced,
+      r32: r32Result,
       debug: { apiMatches: apiMatchCodes, unscoredInDb: unscoredCodes, unmatched },
     })
   } catch (error) {
