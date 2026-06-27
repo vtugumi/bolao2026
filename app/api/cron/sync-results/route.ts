@@ -55,25 +55,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'No finished matches found', synced: 0 })
     }
 
-    // Get all our matches that DON'T have a result yet
-    const unscoredMatches = await prisma.match.findMany({
-      where: { homeScore: null },
+    // Get matches that need syncing:
+    // 1. Matches without a result yet
+    // 2. Matches scored in the last 2 hours (re-verify in case API gave premature FINISHED)
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+    const syncCandidates = await prisma.match.findMany({
+      where: {
+        OR: [
+          { homeScore: null },
+          { updatedAt: { gte: twoHoursAgo }, homeScore: { not: null } },
+        ],
+      },
       include: {
         homeTeam: { select: { id: true, code: true } },
         awayTeam: { select: { id: true, code: true } },
       },
     })
 
+    const unscoredMatches = syncCandidates.filter(m => m.homeScore === null)
+    const recentlyScored = syncCandidates.filter(m => m.homeScore !== null)
     const unscoredCodes = unscoredMatches.map(m => `${m.homeTeam?.code}-${m.awayTeam?.code}`)
-    console.log(`[sync] ${unscoredMatches.length} unscored matches in DB: ${unscoredCodes.slice(0, 10).join(', ')}`)
+    console.log(`[sync] ${unscoredMatches.length} unscored + ${recentlyScored.length} recent to re-verify`)
 
-    if (unscoredMatches.length === 0) {
+    if (syncCandidates.length === 0) {
       return NextResponse.json({ message: 'All matches already have results', synced: 0 })
     }
 
     // Build a lookup: "homeCode-awayCode" → our match
-    const matchLookup = new Map<string, typeof unscoredMatches[0]>()
-    for (const m of unscoredMatches) {
+    const matchLookup = new Map<string, typeof syncCandidates[0]>()
+    for (const m of syncCandidates) {
       if (m.homeTeam && m.awayTeam) {
         matchLookup.set(`${m.homeTeam.code}-${m.awayTeam.code}`, m)
       }
@@ -110,6 +120,18 @@ export async function GET(request: NextRequest) {
         // Fallback: if fullTime score has a winner
         else if (fm.homeScore > fm.awayScore) winnerId = ourMatch.homeTeamId
         else if (fm.awayScore > fm.homeScore) winnerId = ourMatch.awayTeamId
+      }
+
+      // Check if score actually changed (for re-verification of recent matches)
+      const scoreChanged = ourMatch.homeScore !== scoreHome || ourMatch.awayScore !== scoreAway
+      const isNew = ourMatch.homeScore === null
+
+      if (!isNew && !scoreChanged) {
+        continue
+      }
+
+      if (!isNew && scoreChanged) {
+        console.log(`[sync] SCORE CORRECTION: ${fm.homeTeamTla}-${fm.awayTeamTla} was ${ourMatch.homeScore}-${ourMatch.awayScore}, now ${scoreHome}-${scoreAway}`)
       }
 
       // Update match with result
@@ -192,7 +214,8 @@ export async function GET(request: NextRequest) {
       }
 
       synced.push(
-        `${fm.homeTeamTla} ${scoreHome}-${scoreAway} ${fm.awayTeamTla}` +
+        `${scoreChanged && !isNew ? 'CORRIGIDO: ' : ''}${fm.homeTeamTla} ${scoreHome}-${scoreAway} ${fm.awayTeamTla}` +
+        (scoreChanged && !isNew ? ` (era ${ourMatch.homeScore}-${ourMatch.awayScore})` : '') +
         (fm.penaltiesHome !== null ? ` (pen ${fm.penaltiesHome}-${fm.penaltiesAway})` : '') +
         ` → ${predictions.length} palpites pontuados`
       )
