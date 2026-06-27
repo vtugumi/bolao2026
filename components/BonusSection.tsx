@@ -42,7 +42,7 @@ export default function BonusSection() {
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [hasPredictions, setHasPredictions] = useState(false);
-  const [cupStarted, setCupStarted] = useState(false);
+  const [cupStarted, setCupStarted] = useState<boolean | null>(null);
   const [bonusOdds, setBonusOdds] = useState<any>(null);
 
   // Load existing bonus predictions + teams list — re-runs when user changes (re-login)
@@ -104,12 +104,9 @@ export default function BonusSection() {
           if (!earliestDate || d < earliestDate) earliestDate = d;
         }
         setTeams(Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
-        if (earliestDate && earliestDate <= new Date()) {
-          setCupStarted(true);
-        }
+        setCupStarted(earliestDate ? earliestDate <= new Date() : false);
+        setLoaded(true);
       });
-
-      setLoaded(true);
     });
   }, [user?.id]);
 
