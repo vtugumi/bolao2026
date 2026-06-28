@@ -105,11 +105,11 @@ export async function GET(request: NextRequest) {
       if (match.stage === 'R32' && completedGroups) {
         const src = R32_SOURCES[match.matchNumber]
         if (src) {
+          const allGroupsDone = completedGroups.size === 12
           const homeGroup = src.home.length === 2 ? src.home[1] : null
           const awayGroup = src.away === '3rd' ? null : (src.away.length === 2 ? src.away[1] : null)
-          // 3rd-place is always provisional; group teams are provisional if group is incomplete
-          base._provisionalHome = homeGroup ? !completedGroups.has(homeGroup) : true
-          base._provisionalAway = awayGroup ? !completedGroups.has(awayGroup) : true
+          base._provisionalHome = homeGroup ? !completedGroups.has(homeGroup) : !allGroupsDone
+          base._provisionalAway = awayGroup ? !completedGroups.has(awayGroup) : !allGroupsDone
         }
       }
 
