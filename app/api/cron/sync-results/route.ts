@@ -55,27 +55,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'No finished matches found', synced: 0 })
     }
 
-    // Get matches that need syncing:
-    // 1. Matches without a result yet
-    // 2. Matches scored in the last 2 hours (re-verify in case API gave premature FINISHED)
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+    // Get matches without a result yet
     const syncCandidates = await prisma.match.findMany({
-      where: {
-        OR: [
-          { homeScore: null },
-          { updatedAt: { gte: twoHoursAgo }, homeScore: { not: null } },
-        ],
-      },
+      where: { homeScore: null },
       include: {
         homeTeam: { select: { id: true, code: true } },
         awayTeam: { select: { id: true, code: true } },
       },
     })
 
-    const unscoredMatches = syncCandidates.filter(m => m.homeScore === null)
-    const recentlyScored = syncCandidates.filter(m => m.homeScore !== null)
-    const unscoredCodes = unscoredMatches.map(m => `${m.homeTeam?.code}-${m.awayTeam?.code}`)
-    console.log(`[sync] ${unscoredMatches.length} unscored + ${recentlyScored.length} recent to re-verify`)
+    const unscoredCodes = syncCandidates.map(m => `${m.homeTeam?.code}-${m.awayTeam?.code}`)
+    console.log(`[sync] ${syncCandidates.length} unscored matches`)
 
     if (syncCandidates.length === 0) {
       return NextResponse.json({ message: 'All matches already have results', synced: 0 })
