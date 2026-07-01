@@ -309,9 +309,9 @@ export default function MatchCard({ match, showPrediction, odds, onSavePredictio
                       <span className="text-sm font-bold text-gray-800">
                         {gp.homeScore} - {gp.awayScore}
                       </span>
-                      {gp.winnerName && (
-                        <span className="text-[10px] text-gray-400 hidden sm:inline">
-                          ({gp.winnerName})
+                      {gp.winnerName && gp.homeScore === gp.awayScore && (
+                        <span className="text-[10px] text-emerald-600 font-medium">
+                          → {gp.winnerName}
                         </span>
                       )}
                       {gp.points !== null && (

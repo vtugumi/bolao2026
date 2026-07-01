@@ -65,7 +65,7 @@ function OddsBar({
 }
 
 export default function OddsPanel({ odds, homeEmoji, awayEmoji }: OddsPanelProps) {
-  const hasAnyOdds = odds.group || odds.ranking || odds.opta || odds.market;
+  const hasAnyOdds = odds.ranking || odds.opta || odds.market;
   if (!hasAnyOdds) return null;
 
   // Convert market decimal odds to probabilities
@@ -93,14 +93,6 @@ export default function OddsPanel({ odds, homeEmoji, awayEmoji }: OddsPanelProps
           <span>{awayEmoji} Fora</span>
         </div>
       </div>
-
-      {/* Group odds - always visible */}
-      {odds.group && odds.group.total > 0 && (
-        <OddsBar
-          homeWin={odds.group.homeWin} draw={odds.group.draw} awayWin={odds.group.awayWin}
-          label={`👥 ${odds.group.total}/${odds.totalGroupMembers}`}
-        />
-      )}
 
       {/* FIFA Ranking odds */}
       {odds.ranking && (
@@ -151,7 +143,7 @@ interface BonusOddsPanelProps {
 }
 
 export function BonusOddsPanel({ title, groupOdds, rankingOdds, optaOdds, marketOdds, totalMembers, userHasPredicted }: BonusOddsPanelProps) {
-  const hasData = groupOdds.length > 0 || (rankingOdds && rankingOdds.length > 0) || (optaOdds && optaOdds.length > 0) || (marketOdds && marketOdds.length > 0);
+  const hasData = (rankingOdds && rankingOdds.length > 0) || (optaOdds && optaOdds.length > 0) || (marketOdds && marketOdds.length > 0);
   if (!hasData) return null;
 
   const topGroup = groupOdds.slice(0, 5);
@@ -164,30 +156,6 @@ export function BonusOddsPanel({ title, groupOdds, rankingOdds, optaOdds, market
       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
         📊 {title}
       </span>
-
-      {/* Group odds */}
-      {topGroup.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] text-gray-500">👥 Grupo</span>
-            <span className="text-[8px] text-gray-400">{totalMembers} membros</span>
-          </div>
-          <div className="space-y-0.5">
-            {topGroup.map((item, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full"
-                    style={{ width: `${item.percentage || 0}%` }}
-                  />
-                </div>
-                <span className="text-[9px] text-gray-600 w-7 text-right font-bold">{item.percentage}%</span>
-                <span className="text-[9px] text-gray-700 w-24 sm:w-28 truncate">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Ranking odds */}
       {topRanking.length > 0 && (
