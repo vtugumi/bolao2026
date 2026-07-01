@@ -54,6 +54,7 @@ export interface FinishedMatch {
   penaltiesHome: number | null
   penaltiesAway: number | null
   winnerSide: 'HOME' | 'AWAY' | 'DRAW' | null
+  extraTimeIncomplete: boolean     // API has regularTime object but values are null
 }
 
 // Map football-data.org stage names to our internal stage codes
@@ -107,6 +108,11 @@ export async function getFinishedMatches(): Promise<FinishedMatch[]> {
     const hasRegularTime = m.score.regularTime &&
       m.score.regularTime.home !== null && m.score.regularTime.away !== null
 
+    // API returns regularTime object with null values when extra time happened
+    // but scores aren't populated yet — we must not fall back to fullTime in that case
+    const extraTimeIncomplete = !!(m.score.regularTime &&
+      m.score.regularTime.home === null && m.score.regularTime.away === null)
+
     let winnerSide: 'HOME' | 'AWAY' | 'DRAW' | null = null
     if (m.score.winner === 'HOME_TEAM') winnerSide = 'HOME'
     else if (m.score.winner === 'AWAY_TEAM') winnerSide = 'AWAY'
@@ -125,6 +131,7 @@ export async function getFinishedMatches(): Promise<FinishedMatch[]> {
       penaltiesHome: m.score.penalties?.home ?? null,
       penaltiesAway: m.score.penalties?.away ?? null,
       winnerSide,
+      extraTimeIncomplete,
     }
   })
 }

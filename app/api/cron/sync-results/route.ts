@@ -94,6 +94,14 @@ export async function GET(request: NextRequest) {
       // For knockout: use regularTime score (90 min) for prediction comparison
       // The prediction system scores based on 90-min result
       const isKnockout = ourMatch.stage !== 'GROUP'
+
+      // Skip knockout matches where API indicates extra time but hasn't populated
+      // the 90-minute scores yet — scoring with fullTime (incl. ET) would be wrong
+      if (isKnockout && fm.extraTimeIncomplete) {
+        console.log(`[sync] SKIP ${key}: extra time detected but regularTime not yet populated by API`)
+        continue
+      }
+
       const scoreHome = isKnockout && fm.regularHomeScore !== null ? fm.regularHomeScore : fm.homeScore
       const scoreAway = isKnockout && fm.regularAwayScore !== null ? fm.regularAwayScore : fm.awayScore
 
