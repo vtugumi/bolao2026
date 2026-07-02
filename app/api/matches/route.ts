@@ -102,16 +102,6 @@ export async function GET(request: NextRequest) {
         userPrediction: predictions?.[0] ?? null,
       }
 
-      if (match.stage === 'R32' && completedGroups) {
-        const src = R32_SOURCES[match.matchNumber]
-        if (src) {
-          const allGroupsDone = completedGroups.size === 12
-          const homeGroup = src.home.length === 2 ? src.home[1] : null
-          const awayGroup = src.away === '3rd' ? null : (src.away.length === 2 ? src.away[1] : null)
-          base._provisionalHome = homeGroup ? !completedGroups.has(homeGroup) : !allGroupsDone
-          base._provisionalAway = awayGroup ? !completedGroups.has(awayGroup) : !allGroupsDone
-        }
-      }
 
       return base
     })

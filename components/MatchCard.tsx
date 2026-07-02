@@ -43,7 +43,7 @@ function formatDate(dateStr: string): string {
 }
 
 function getPointsColor(points: number): string {
-  if (points === 8) return 'bg-emerald-200 text-emerald-800';
+  if (points === 8) return 'bg-amber-200 text-amber-800';
   if (points === 5) return 'bg-green-200 text-green-800';
   if (points === 2) return 'bg-yellow-200 text-yellow-800';
   if (points === 1) return 'bg-red-200 text-red-800';
