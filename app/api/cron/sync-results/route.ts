@@ -120,6 +120,12 @@ export async function GET(request: NextRequest) {
         else if (fm.awayScore > fm.homeScore) winnerId = ourMatch.awayTeamId
       }
 
+      // Knockout must have a winner — skip if we can't determine one
+      if (isKnockout && !winnerId) {
+        console.log(`[sync] SKIP ${key}: knockout match but no winner determined yet`)
+        continue
+      }
+
       // Check if score actually changed (for re-verification of recent matches)
       const scoreChanged = ourMatch.homeScore !== scoreHome || ourMatch.awayScore !== scoreAway
       const isNew = ourMatch.homeScore === null
