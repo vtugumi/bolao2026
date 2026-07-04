@@ -55,17 +55,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'No finished matches found', synced: 0 })
     }
 
-    // Get matches without a result yet
+    // Get unscored matches + recently scored knockout matches for re-verification
+    // Re-verify knockout matches scored in the last 12 hours to catch premature/wrong API data
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000)
     const syncCandidates = await prisma.match.findMany({
-      where: { homeScore: null },
+      where: {
+        OR: [
+          { homeScore: null },
+          {
+            stage: { not: 'GROUP' },
+            homeScore: { not: null },
+            dateTime: { gte: twelveHoursAgo },
+          },
+        ],
+      },
       include: {
         homeTeam: { select: { id: true, code: true } },
         awayTeam: { select: { id: true, code: true } },
       },
     })
 
+    const unscoredCount = syncCandidates.filter(m => m.homeScore === null).length
+    const reverifyCount = syncCandidates.length - unscoredCount
     const unscoredCodes = syncCandidates.map(m => `${m.homeTeam?.code}-${m.awayTeam?.code}`)
-    console.log(`[sync] ${syncCandidates.length} unscored matches`)
+    console.log(`[sync] ${unscoredCount} unscored + ${reverifyCount} knockout re-verify candidates`)
 
     if (syncCandidates.length === 0) {
       return NextResponse.json({ message: 'All matches already have results', synced: 0 })
@@ -126,16 +139,23 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      // Check if score actually changed (for re-verification of recent matches)
-      const scoreChanged = ourMatch.homeScore !== scoreHome || ourMatch.awayScore !== scoreAway
+      // Check if anything changed (for re-verification of recent knockout matches)
       const isNew = ourMatch.homeScore === null
+      const scoreChanged = ourMatch.homeScore !== scoreHome || ourMatch.awayScore !== scoreAway
+      const winnerChanged = isKnockout && ourMatch.winnerId !== winnerId
+      const penaltiesChanged = (ourMatch.homePenalties ?? null) !== (fm.penaltiesHome ?? null) ||
+        (ourMatch.awayPenalties ?? null) !== (fm.penaltiesAway ?? null)
 
-      if (!isNew && !scoreChanged) {
+      if (!isNew && !scoreChanged && !winnerChanged && !penaltiesChanged) {
         continue
       }
 
-      if (!isNew && scoreChanged) {
-        console.log(`[sync] SCORE CORRECTION: ${fm.homeTeamTla}-${fm.awayTeamTla} was ${ourMatch.homeScore}-${ourMatch.awayScore}, now ${scoreHome}-${scoreAway}`)
+      if (!isNew) {
+        const changes: string[] = []
+        if (scoreChanged) changes.push(`score ${ourMatch.homeScore}-${ourMatch.awayScore} → ${scoreHome}-${scoreAway}`)
+        if (winnerChanged) changes.push(`winner ${ourMatch.winnerId} → ${winnerId}`)
+        if (penaltiesChanged) changes.push(`penalties ${ourMatch.homePenalties ?? '-'}-${ourMatch.awayPenalties ?? '-'} → ${fm.penaltiesHome ?? '-'}-${fm.penaltiesAway ?? '-'}`)
+        console.log(`[sync] CORRECTION ${fm.homeTeamTla}-${fm.awayTeamTla}: ${changes.join(', ')}`)
       }
 
       // Update match with result
