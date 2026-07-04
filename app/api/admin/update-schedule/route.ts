@@ -117,26 +117,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // KNOCKOUT MATCHES: match by stage + chronological order
-    const knockoutStages = ['R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
+    // KNOCKOUT MATCHES: match by team codes (not ordinal position!)
+    // Match numbers follow bracket topology, NOT chronological order,
+    // so positional mapping assigns wrong times to wrong matches.
+    const ourKnockoutMatches = ourMatches.filter(m => m.stage !== 'GROUP')
+    const apiKnockoutMatches = apiMatches.filter(m => m.stage !== 'GROUP_STAGE')
 
-    for (const stage of knockoutStages) {
-      const apiStageMatches = apiMatches
-        .filter(am => (STAGE_MAP[am.stage] || am.stage) === stage)
-        .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())
+    for (const ourMatch of ourKnockoutMatches) {
+      if (!ourMatch.homeTeam || !ourMatch.awayTeam) continue
+      const ourHome = ourMatch.homeTeam.code
+      const ourAway = ourMatch.awayTeam.code
 
-      const ourStageMatches = ourMatches
-        .filter(m => m.stage === stage)
-        .sort((a, b) => a.matchNumber - b.matchNumber)
+      const apiMatch = apiKnockoutMatches.find(am =>
+        (am.homeTeam?.tla === ourHome && am.awayTeam?.tla === ourAway) ||
+        (am.homeTeam?.tla === ourAway && am.awayTeam?.tla === ourHome)
+      )
 
-      for (let i = 0; i < Math.min(apiStageMatches.length, ourStageMatches.length); i++) {
-        await prisma.match.update({
-          where: { id: ourStageMatches[i].id },
-          data: {
-            dateTime: new Date(apiStageMatches[i].utcDate),
-          },
-        })
-        updated.push(`#${ourStageMatches[i].matchNumber} ${stage}[${i + 1}] → ${apiStageMatches[i].utcDate}`)
+      if (apiMatch) {
+        const newDate = new Date(apiMatch.utcDate)
+        if (ourMatch.dateTime?.getTime() !== newDate.getTime()) {
+          await prisma.match.update({
+            where: { id: ourMatch.id },
+            data: { dateTime: newDate },
+          })
+          updated.push(`#${ourMatch.matchNumber} ${ourHome}-${ourAway} → ${apiMatch.utcDate}`)
+        }
+      } else {
+        notFound.push(`#${ourMatch.matchNumber} ${ourHome} vs ${ourAway}`)
       }
     }
 

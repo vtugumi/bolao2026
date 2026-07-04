@@ -136,6 +136,31 @@ export async function getFinishedMatches(): Promise<FinishedMatch[]> {
   })
 }
 
+export interface ScheduledMatch {
+  homeTeamTla: string
+  awayTeamTla: string
+  utcDate: string
+  stage: string
+}
+
+/**
+ * Get upcoming match times (TIMED/SCHEDULED) for date sync
+ */
+export async function getUpcomingMatchTimes(): Promise<ScheduledMatch[]> {
+  const data = await apiFetch<{ matches: ApiMatch[] }>(
+    '/competitions/WC/matches?status=TIMED,SCHEDULED'
+  )
+
+  return data.matches
+    .filter(m => m.homeTeam?.tla && m.awayTeam?.tla)
+    .map(m => ({
+      homeTeamTla: m.homeTeam.tla,
+      awayTeamTla: m.awayTeam.tla,
+      utcDate: m.utcDate,
+      stage: mapStage(m.stage),
+    }))
+}
+
 /**
  * Get all matches for today (any status)
  */

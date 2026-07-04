@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getFinishedMatches } from '@/lib/football-api'
+import { getFinishedMatches, getUpcomingMatchTimes } from '@/lib/football-api'
 import { scorePrediction } from '@/lib/scoring'
 import { KNOCKOUT_BRACKET, THIRD_PLACE_BRACKET } from '@/lib/knockout-bracket'
 import { populateR32Bracket } from '@/lib/populate-r32'
@@ -257,12 +257,49 @@ export async function GET(request: NextRequest) {
       console.error('[sync] R32 population error:', r32Error)
     }
 
+    // Sync dateTime for upcoming matches (match by team codes, not ordinal position)
+    const timeFixed: string[] = []
+    try {
+      const upcoming = await getUpcomingMatchTimes()
+      if (upcoming.length > 0) {
+        const unscoredWithTeams = await prisma.match.findMany({
+          where: { homeScore: null, homeTeamId: { not: null }, awayTeamId: { not: null } },
+          include: {
+            homeTeam: { select: { code: true } },
+            awayTeam: { select: { code: true } },
+          },
+        })
+
+        for (const dbMatch of unscoredWithTeams) {
+          if (!dbMatch.homeTeam || !dbMatch.awayTeam) continue
+          const apiMatch = upcoming.find(am =>
+            (am.homeTeamTla === dbMatch.homeTeam!.code && am.awayTeamTla === dbMatch.awayTeam!.code) ||
+            (am.homeTeamTla === dbMatch.awayTeam!.code && am.awayTeamTla === dbMatch.homeTeam!.code)
+          )
+          if (!apiMatch) continue
+
+          const apiDate = new Date(apiMatch.utcDate)
+          if (dbMatch.dateTime?.getTime() !== apiDate.getTime()) {
+            await prisma.match.update({
+              where: { id: dbMatch.id },
+              data: { dateTime: apiDate },
+            })
+            timeFixed.push(`M${dbMatch.matchNumber} ${dbMatch.homeTeam.code}-${dbMatch.awayTeam.code}: ${dbMatch.dateTime?.toISOString()} → ${apiMatch.utcDate}`)
+            console.log(`[sync] TIME FIX M${dbMatch.matchNumber}: ${dbMatch.dateTime?.toISOString()} → ${apiMatch.utcDate}`)
+          }
+        }
+      }
+    } catch (timeErr) {
+      console.error('[sync] Time sync error:', timeErr)
+    }
+
     return NextResponse.json({
       message: synced.length > 0
         ? `${synced.length} resultado(s) sincronizado(s)`
         : 'Nenhum resultado novo para sincronizar',
       synced: synced.length,
       details: synced,
+      timeFixed,
       r32: r32Result,
       debug: { apiMatches: apiMatchCodes, unscoredInDb: unscoredCodes, unmatched },
     })
