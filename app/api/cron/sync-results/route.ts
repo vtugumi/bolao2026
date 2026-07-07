@@ -257,37 +257,52 @@ export async function GET(request: NextRequest) {
       console.error('[sync] R32 population error:', r32Error)
     }
 
-    // Sync dateTime for upcoming matches (match by team codes, not ordinal position)
+    // Sync dateTime for upcoming matches — runs at most once per hour
     const timeFixed: string[] = []
+    let timeSyncSkipped = false
     try {
-      const upcoming = await getUpcomingMatchTimes()
-      if (upcoming.length > 0) {
-        const unscoredWithTeams = await prisma.match.findMany({
-          where: { homeScore: null, homeTeamId: { not: null }, awayTeamId: { not: null } },
-          include: {
-            homeTeam: { select: { code: true } },
-            awayTeam: { select: { code: true } },
-          },
-        })
+      const lastTimeSyncSetting = await prisma.setting.findUnique({ where: { key: 'last_time_sync' } })
+      const lastTimeSync = lastTimeSyncSetting ? new Date(lastTimeSyncSetting.value).getTime() : 0
+      const minutesSinceLastSync = (Date.now() - lastTimeSync) / 60_000
 
-        for (const dbMatch of unscoredWithTeams) {
-          if (!dbMatch.homeTeam || !dbMatch.awayTeam) continue
-          const apiMatch = upcoming.find(am =>
-            (am.homeTeamTla === dbMatch.homeTeam!.code && am.awayTeamTla === dbMatch.awayTeam!.code) ||
-            (am.homeTeamTla === dbMatch.awayTeam!.code && am.awayTeamTla === dbMatch.homeTeam!.code)
-          )
-          if (!apiMatch) continue
+      if (minutesSinceLastSync < 55) {
+        timeSyncSkipped = true
+      } else {
+        const upcoming = await getUpcomingMatchTimes()
+        if (upcoming.length > 0) {
+          const unscoredWithTeams = await prisma.match.findMany({
+            where: { homeScore: null, homeTeamId: { not: null }, awayTeamId: { not: null } },
+            include: {
+              homeTeam: { select: { code: true } },
+              awayTeam: { select: { code: true } },
+            },
+          })
 
-          const apiDate = new Date(apiMatch.utcDate)
-          if (dbMatch.dateTime?.getTime() !== apiDate.getTime()) {
-            await prisma.match.update({
-              where: { id: dbMatch.id },
-              data: { dateTime: apiDate },
-            })
-            timeFixed.push(`M${dbMatch.matchNumber} ${dbMatch.homeTeam.code}-${dbMatch.awayTeam.code}: ${dbMatch.dateTime?.toISOString()} → ${apiMatch.utcDate}`)
-            console.log(`[sync] TIME FIX M${dbMatch.matchNumber}: ${dbMatch.dateTime?.toISOString()} → ${apiMatch.utcDate}`)
+          for (const dbMatch of unscoredWithTeams) {
+            if (!dbMatch.homeTeam || !dbMatch.awayTeam) continue
+            const apiMatch = upcoming.find(am =>
+              (am.homeTeamTla === dbMatch.homeTeam!.code && am.awayTeamTla === dbMatch.awayTeam!.code) ||
+              (am.homeTeamTla === dbMatch.awayTeam!.code && am.awayTeamTla === dbMatch.homeTeam!.code)
+            )
+            if (!apiMatch) continue
+
+            const apiDate = new Date(apiMatch.utcDate)
+            if (dbMatch.dateTime?.getTime() !== apiDate.getTime()) {
+              await prisma.match.update({
+                where: { id: dbMatch.id },
+                data: { dateTime: apiDate },
+              })
+              timeFixed.push(`M${dbMatch.matchNumber} ${dbMatch.homeTeam.code}-${dbMatch.awayTeam.code}: ${dbMatch.dateTime?.toISOString()} → ${apiMatch.utcDate}`)
+              console.log(`[sync] TIME FIX M${dbMatch.matchNumber}: ${dbMatch.dateTime?.toISOString()} → ${apiMatch.utcDate}`)
+            }
           }
         }
+
+        await prisma.setting.upsert({
+          where: { key: 'last_time_sync' },
+          update: { value: new Date().toISOString() },
+          create: { key: 'last_time_sync', value: new Date().toISOString() },
+        })
       }
     } catch (timeErr) {
       console.error('[sync] Time sync error:', timeErr)
@@ -299,7 +314,7 @@ export async function GET(request: NextRequest) {
         : 'Nenhum resultado novo para sincronizar',
       synced: synced.length,
       details: synced,
-      timeFixed,
+      timeFixed: timeSyncSkipped ? 'skipped (< 1h since last sync)' : timeFixed,
       r32: r32Result,
       debug: { apiMatches: apiMatchCodes, unscoredInDb: unscoredCodes, unmatched },
     })
