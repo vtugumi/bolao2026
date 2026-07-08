@@ -108,34 +108,49 @@ export async function GET(request: NextRequest) {
       // The prediction system scores based on 90-min result
       const isKnockout = ourMatch.stage !== 'GROUP'
 
-      // Skip knockout matches where API indicates extra time but hasn't populated
-      // the 90-minute scores yet — scoring with fullTime (incl. ET) would be wrong
+      // Extra time detected but 90-min scores not yet populated by API.
+      // Wait up to 4h for the API to fix it; after that, use fullTime as fallback.
+      // The re-verification loop will correct the score later if API updates.
       if (isKnockout && fm.extraTimeIncomplete) {
-        console.log(`[sync] SKIP ${key}: extra time detected but regularTime not yet populated by API`)
-        continue
+        const kickoff = ourMatch.dateTime?.getTime() ?? 0
+        const hoursSinceKickoff = (Date.now() - kickoff) / 3_600_000
+        if (hoursSinceKickoff < 4) {
+          console.log(`[sync] SKIP ${key}: ET incomplete, waiting for API (${hoursSinceKickoff.toFixed(1)}h since kickoff)`)
+          continue
+        }
+        console.log(`[sync] FALLBACK ${key}: ET incomplete for ${hoursSinceKickoff.toFixed(1)}h, using fullTime as score`)
       }
 
       const scoreHome = isKnockout && fm.regularHomeScore !== null ? fm.regularHomeScore : fm.homeScore
       const scoreAway = isKnockout && fm.regularAwayScore !== null ? fm.regularAwayScore : fm.awayScore
 
-      // Determine winner (who advances) for knockout
+      // Determine winner (who advances) for knockout.
+      // Each fallback runs independently — a tied penalty check must NOT
+      // prevent the fullTime fallback from executing.
       let winnerId: number | null = null
       if (isKnockout) {
         if (fm.winnerSide === 'HOME') winnerId = ourMatch.homeTeamId
         else if (fm.winnerSide === 'AWAY') winnerId = ourMatch.awayTeamId
-        // If draw in regular time but someone won on penalties, check penalties
-        else if (fm.penaltiesHome !== null && fm.penaltiesAway !== null) {
-          if (fm.penaltiesHome > fm.penaltiesAway) winnerId = ourMatch.homeTeamId
-          else if (fm.penaltiesAway > fm.penaltiesHome) winnerId = ourMatch.awayTeamId
+
+        if (!winnerId && fm.penaltiesHome != null && fm.penaltiesAway != null && fm.penaltiesHome !== fm.penaltiesAway) {
+          winnerId = fm.penaltiesHome > fm.penaltiesAway ? ourMatch.homeTeamId : ourMatch.awayTeamId
         }
-        // Fallback: if fullTime score has a winner
-        else if (fm.homeScore > fm.awayScore) winnerId = ourMatch.homeTeamId
-        else if (fm.awayScore > fm.homeScore) winnerId = ourMatch.awayTeamId
+
+        if (!winnerId && fm.homeScore !== fm.awayScore) {
+          winnerId = fm.homeScore > fm.awayScore ? ourMatch.homeTeamId : ourMatch.awayTeamId
+        }
+
+        if (winnerId && !fm.winnerSide) {
+          const winnerCode = winnerId === ourMatch.homeTeamId ? ourMatch.homeTeam?.code : ourMatch.awayTeam?.code
+          console.log(`[sync] DEDUCED winner for ${key}: ${winnerCode} (API winner field was null)`)
+        }
       }
 
       // Knockout must have a winner — skip if we can't determine one
       if (isKnockout && !winnerId) {
-        console.log(`[sync] SKIP ${key}: knockout match but no winner determined yet`)
+        const kickoff = ourMatch.dateTime?.getTime() ?? 0
+        const hoursSinceKickoff = (Date.now() - kickoff) / 3_600_000
+        console.log(`[sync] STUCK ${key} (M${ourMatch.matchNumber}): knockout, no winner after ${hoursSinceKickoff.toFixed(1)}h. API: winner=${fm.winnerSide}, pen=${fm.penaltiesHome}-${fm.penaltiesAway}, ft=${fm.homeScore}-${fm.awayScore}`)
         continue
       }
 
