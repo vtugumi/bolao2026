@@ -82,16 +82,28 @@ export async function GET(request: NextRequest) {
     return value.toUpperCase()
   }
 
+  const knockoutStages = ['R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
+
   const members = users.map(u => {
-    const predPoints = u.predictions
-      .filter(p => p.points !== null)
-      .reduce((sum, p) => sum + (p.points || 0), 0)
+    const scoredPreds = u.predictions.filter(p => p.points !== null)
+    const predPoints = scoredPreds.reduce((sum, p) => sum + (p.points || 0), 0)
 
     const awardedBonusPoints = u.bonusPredictions
       .filter(bp => bp.points !== null)
       .reduce((sum, bp) => sum + (bp.points || 0), 0)
 
     const totalPoints = predPoints + awardedBonusPoints
+
+    const exactScores = scoredPreds.filter(p => {
+      if (p.match.stage === 'GROUP') return p.points === 5
+      return p.points === 8
+    }).length
+
+    const bonusHits = u.bonusPredictions.filter(b => (b.points || 0) > 0).length
+
+    const knockoutPoints = scoredPreds
+      .filter(p => knockoutStages.includes(p.match.stage))
+      .reduce((sum, p) => sum + (p.points || 0), 0)
 
     const bonuses: Record<string, string> = {}
     for (const bp of u.bonusPredictions) {
@@ -105,13 +117,22 @@ export async function GET(request: NextRequest) {
     return {
       name: u.name,
       pts: totalPoints,
+      ex: exactScores,
+      bh: bonusHits,
+      ko: knockoutPoints,
       c: bonuses['CHAMPION'] || null,
       v: bonuses['RUNNER_UP'] || null,
       t: bonuses['THIRD_PLACE'] || null,
       f: bonuses['FOURTH_PLACE'] || null,
       s: bonuses['TOP_SCORER'] || null,
     }
-  }).sort((a, b) => b.pts - a.pts)
+  }).sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts
+    if (b.ex !== a.ex) return b.ex - a.ex
+    if (b.bh !== a.bh) return b.bh - a.bh
+    if (b.ko !== a.ko) return b.ko - a.ko
+    return a.name.localeCompare(b.name)
+  })
 
   // Top scorer candidates (from actual tournament data)
   // This could come from the API but for now we'll compute from settings or return empty

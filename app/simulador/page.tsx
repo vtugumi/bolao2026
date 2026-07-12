@@ -12,6 +12,9 @@ interface Group {
 interface Member {
   name: string
   pts: number
+  ex: number
+  bh: number
+  ko: number
   c: string | null
   v: string | null
   t: string | null
@@ -183,8 +186,15 @@ export default function SimuladorPage() {
       if (scorer && scorerMatches(m.s, scorer)) {
         bonus += bp.TOP_SCORER; details.push(`A+${bp.TOP_SCORER}`)
       }
-      return { ...m, bonus, total: m.pts + bonus, origRank: i + 1, details }
-    }).sort((a, b) => b.total - a.total || a.origRank - b.origRank)
+      const simBH = m.bh + details.length
+      return { ...m, bonus, total: m.pts + bonus, simBH, origRank: i + 1, details }
+    }).sort((a, b) => {
+      if (b.total !== a.total) return b.total - a.total
+      if (b.ex !== a.ex) return b.ex - a.ex
+      if (b.simBH !== a.simBH) return b.simBH - a.simBH
+      if (b.ko !== a.ko) return b.ko - a.ko
+      return a.name.localeCompare(b.name)
+    })
       .map((r, i) => ({ ...r, newRank: i + 1, change: r.origRank - (i + 1) }))
   }, [data, positions, scorer])
 
