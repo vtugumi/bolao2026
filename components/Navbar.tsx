@@ -59,6 +59,12 @@ export default function Navbar() {
                 >
                   Grupos
                 </Link>
+                <Link
+                  href="/simulador"
+                  className="hover:text-emerald-200 transition-colors"
+                >
+                  Simulador
+                </Link>
                 {user.isAdmin && (
                   <Link
                     href="/admin"
@@ -172,6 +178,13 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                 >
                   Grupos
+                </Link>
+                <Link
+                  href="/simulador"
+                  className="block py-2 px-3 rounded-lg hover:bg-emerald-700 transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Simulador
                 </Link>
                 {user.isAdmin && (
                   <Link
