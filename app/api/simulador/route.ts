@@ -83,9 +83,15 @@ export async function GET(request: NextRequest) {
   }
 
   const members = users.map(u => {
-    const totalPoints = u.predictions
+    const predPoints = u.predictions
       .filter(p => p.points !== null)
       .reduce((sum, p) => sum + (p.points || 0), 0)
+
+    const awardedBonusPoints = u.bonusPredictions
+      .filter(bp => bp.points !== null)
+      .reduce((sum, bp) => sum + (bp.points || 0), 0)
+
+    const totalPoints = predPoints + awardedBonusPoints
 
     const bonuses: Record<string, string> = {}
     for (const bp of u.bonusPredictions) {
