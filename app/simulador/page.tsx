@@ -35,11 +35,39 @@ interface SimData {
   members: Member[]
 }
 
-const FLAG: Record<string, string> = {
-  FRA: '🇫🇷', ESP: '🇪🇸', ENG: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', ARG: '🇦🇷',
-  BRA: '🇧🇷', POR: '🇵🇹', GER: '🇩🇪', NED: '🇳🇱',
-  MAR: '🇲🇦', USA: '🇺🇸', MEX: '🇲🇽', BEL: '🇧🇪',
-  SUI: '🇨🇭', COL: '🇨🇴', NOR: '🇳🇴', CRO: '🇭🇷',
+const TEAM_COLORS: Record<string, [string, string, string]> = {
+  FRA: ['#002395', '#FFFFFF', '#ED2939'],
+  ESP: ['#AA151B', '#F1BF00', '#AA151B'],
+  ENG: ['#FFFFFF', '#CF081F', '#FFFFFF'],
+  ARG: ['#74ACDF', '#FFFFFF', '#74ACDF'],
+  BRA: ['#009739', '#FEDD00', '#002776'],
+  POR: ['#006600', '#FF0000', '#FF0000'],
+  GER: ['#000000', '#DD0000', '#FFCE00'],
+  NED: ['#AE1C28', '#FFFFFF', '#21468B'],
+}
+
+function TeamFlag({ code, size = 16 }: { code: string; size?: number }) {
+  const colors = TEAM_COLORS[code]
+  if (!colors) return <span className="text-[10px] font-bold text-gray-400">{code}</span>
+  const h = size
+  const w = Math.round(size * 1.4)
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="inline-block rounded-[2px] flex-shrink-0" style={{ boxShadow: '0 0 0 0.5px rgba(0,0,0,0.15)' }}>
+      {code === 'ENG' ? (
+        <>
+          <rect width={w} height={h} fill="#FFFFFF" />
+          <rect x={Math.round(w/2)-1.5} y={0} width={3} height={h} fill="#CF081F" />
+          <rect x={0} y={Math.round(h/2)-1.5} width={w} height={3} fill="#CF081F" />
+        </>
+      ) : (
+        <>
+          <rect x={0} y={0} width={Math.round(w/3)} height={h} fill={colors[0]} />
+          <rect x={Math.round(w/3)} y={0} width={Math.round(w/3)} height={h} fill={colors[1]} />
+          <rect x={Math.round(w*2/3)} y={0} width={Math.round(w/3)+1} height={h} fill={colors[2]} />
+        </>
+      )}
+    </svg>
+  )
 }
 
 const TEAM_NAME: Record<string, string> = {
@@ -308,7 +336,7 @@ export default function SimuladorPage() {
                       : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-amber-400'
                   }`}
                 >
-                  <span>{FLAG[s.team] || ''} {s.name}</span>
+                  <span className="flex items-center justify-center gap-1"><TeamFlag code={s.team} size={12} /> {s.name}</span>
                   <span className="block text-[10px] text-gray-400">{s.goals} gols &middot; {scorerBets[s.name] || 0} ap.</span>
                 </button>
               ))}
@@ -376,7 +404,7 @@ export default function SimuladorPage() {
               const bets = scorerBets[s.name] || 0
               return (
                 <div key={s.name} className="flex items-center gap-2 mb-1.5 text-xs">
-                  <div className="w-20 font-semibold truncate">{FLAG[s.team]} {s.name}</div>
+                  <div className="w-20 font-semibold truncate flex items-center gap-1"><TeamFlag code={s.team} size={12} /> {s.name}</div>
                   <div className="font-bold w-5 text-right tabular-nums">{s.goals}</div>
                   <div className="flex-1 bg-gray-100 rounded h-4 overflow-hidden">
                     <div
@@ -409,7 +437,7 @@ function TeamBtn({ code, selected, locked, onClick }: { code: string; selected: 
           : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-amber-400 hover:bg-amber-50 cursor-pointer'
       }`}
     >
-      <span className="text-base">{FLAG[code] || ''}</span>
+      <TeamFlag code={code} size={18} />
       <span>{TEAM_NAME[code] || code}</span>
     </button>
   )
@@ -419,7 +447,7 @@ function PositionSlot({ label, code, pts, gold }: { label: string; code: string;
   return (
     <div className={`text-center p-2 rounded-lg ${gold ? 'bg-amber-50' : 'bg-gray-50'}`}>
       <div className={`text-[9px] font-bold uppercase tracking-wider ${gold ? 'text-amber-600' : 'text-gray-400'}`}>{label}</div>
-      <div className="text-sm font-bold mt-0.5">{FLAG[code]} {code}</div>
+      <div className="text-sm font-bold mt-0.5 flex items-center justify-center gap-1"><TeamFlag code={code} size={14} /> {code}</div>
       <div className="text-[10px] font-semibold text-amber-600">+{pts}pts</div>
     </div>
   )
