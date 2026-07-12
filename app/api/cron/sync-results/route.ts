@@ -121,8 +121,27 @@ export async function GET(request: NextRequest) {
         console.log(`[sync] FALLBACK ${key}: ET incomplete for ${hoursSinceKickoff.toFixed(1)}h, using fullTime as score`)
       }
 
-      const scoreHome = isKnockout && fm.regularHomeScore !== null ? fm.regularHomeScore : fm.homeScore
-      const scoreAway = isKnockout && fm.regularAwayScore !== null ? fm.regularAwayScore : fm.awayScore
+      const isNew = ourMatch.homeScore === null
+
+      // Pattern 3: API has NO regularTime at all for a knockout match that went to ET.
+      // Detectable when: knockout, no regularTime, not extraTimeIncomplete, but penalties exist
+      // (penalties prove ET happened, so fullTime includes ET goals — unusable as 90-min score).
+      const noRegularTimeButETHappened = isKnockout &&
+        fm.regularHomeScore === null && !fm.extraTimeIncomplete &&
+        fm.penaltiesHome != null && fm.penaltiesAway != null
+
+      // For re-verification of already-scored knockout matches:
+      // Only update score if API provides valid regularTime.
+      // If regularTime is absent, the existing DB score is authoritative (set by prior correct sync or manual fix).
+      const skipScoreUpdate = isKnockout && !isNew && fm.regularHomeScore === null
+
+      if (noRegularTimeButETHappened && isNew) {
+        console.log(`[sync] SKIP ${key}: knockout with penalties but no regularTime — cannot determine 90-min score`)
+        continue
+      }
+
+      const scoreHome = skipScoreUpdate ? ourMatch.homeScore! : (isKnockout && fm.regularHomeScore !== null ? fm.regularHomeScore : fm.homeScore)
+      const scoreAway = skipScoreUpdate ? ourMatch.awayScore! : (isKnockout && fm.regularAwayScore !== null ? fm.regularAwayScore : fm.awayScore)
 
       // Determine winner (who advances) for knockout.
       // Each fallback runs independently — a tied penalty check must NOT
@@ -155,11 +174,14 @@ export async function GET(request: NextRequest) {
       }
 
       // Check if anything changed (for re-verification of recent knockout matches)
-      const isNew = ourMatch.homeScore === null
       const scoreChanged = ourMatch.homeScore !== scoreHome || ourMatch.awayScore !== scoreAway
       const winnerChanged = isKnockout && ourMatch.winnerId !== winnerId
       const penaltiesChanged = (ourMatch.homePenalties ?? null) !== (fm.penaltiesHome ?? null) ||
         (ourMatch.awayPenalties ?? null) !== (fm.penaltiesAway ?? null)
+
+      if (skipScoreUpdate && (winnerChanged || penaltiesChanged)) {
+        console.log(`[sync] PROTECT ${key}: keeping DB score ${ourMatch.homeScore}-${ourMatch.awayScore} (API has no regularTime), updating winner/penalties only`)
+      }
 
       if (!isNew && !scoreChanged && !winnerChanged && !penaltiesChanged) {
         continue
