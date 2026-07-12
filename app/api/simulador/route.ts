@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Grupo nao encontrado' }, { status: 404 })
   }
 
-  const isMember = group.members.some(m => m.userId === user.userId)
+  const isMember = group.members.some(m => m.userId === user.id)
   if (!isMember) {
     return NextResponse.json({ error: 'Voce nao e membro deste grupo' }, { status: 403 })
   }
