@@ -44,6 +44,20 @@ export async function GET(request: NextRequest) {
   const semifinalists: { code: string; name: string; id: number }[] = []
   const sf1 = sfMatches.find(m => m.matchNumber === 101)
   const sf2 = sfMatches.find(m => m.matchNumber === 102)
+  const m103 = sfMatches.find(m => m.matchNumber === 103)
+  const m104 = sfMatches.find(m => m.matchNumber === 104)
+
+  function getMatchWinner(m: typeof sf1): string | null {
+    if (!m || m.homeScore === null || m.awayScore === null) return null
+    if (m.homeScore! > m.awayScore!) return m.homeTeam?.code || null
+    if (m.awayScore! > m.homeScore!) return m.awayTeam?.code || null
+    if (m.homePenalties != null && m.awayPenalties != null) {
+      return m.homePenalties > m.awayPenalties
+        ? m.homeTeam?.code || null
+        : m.awayTeam?.code || null
+    }
+    return null
+  }
 
   if (sf1?.homeTeam) semifinalists.push({ code: sf1.homeTeam.code, name: sf1.homeTeam.name, id: sf1.homeTeamId! })
   if (sf1?.awayTeam) semifinalists.push({ code: sf1.awayTeam.code, name: sf1.awayTeam.name, id: sf1.awayTeamId! })
@@ -143,6 +157,12 @@ export async function GET(request: NextRequest) {
     semifinalists,
     sf1: { home: sf1?.homeTeam?.code, away: sf1?.awayTeam?.code },
     sf2: { home: sf2?.homeTeam?.code, away: sf2?.awayTeam?.code },
+    sf1Winner: getMatchWinner(sf1),
+    sf2Winner: getMatchWinner(sf2),
+    sf1Score: sf1?.homeScore != null ? { home: sf1.homeScore, away: sf1.awayScore } : null,
+    sf2Score: sf2?.homeScore != null ? { home: sf2.homeScore, away: sf2.awayScore } : null,
+    finalMatch: m104?.homeTeam && m104?.awayTeam ? { home: m104.homeTeam.code, away: m104.awayTeam.code } : null,
+    thirdMatch: m103?.homeTeam && m103?.awayTeam ? { home: m103.homeTeam.code, away: m103.awayTeam.code } : null,
     bonusPoints: SCORING.BONUS,
     members,
   })

@@ -27,6 +27,12 @@ interface SimData {
   semifinalists: { code: string; name: string; id: number }[]
   sf1: { home: string; away: string }
   sf2: { home: string; away: string }
+  sf1Winner: string | null
+  sf2Winner: string | null
+  sf1Score: { home: number; away: number } | null
+  sf2Score: { home: number; away: number } | null
+  finalMatch: { home: string; away: string } | null
+  thirdMatch: { home: string; away: string } | null
   bonusPoints: {
     CHAMPION: number
     RUNNER_UP: number
@@ -131,12 +137,20 @@ export default function SimuladorPage() {
     setLoading(true)
     fetch(`/api/simulador?groupId=${selectedGroup}`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { setData(d); resetBracket() })
+      .then(d => {
+        setData(d)
+        setSf1Winner(d?.sf1Winner || null)
+        setSf2Winner(d?.sf2Winner || null)
+        setFinalWinner(null)
+        setThirdWinner(null)
+        setScorer(null)
+      })
       .finally(() => setLoading(false))
   }, [selectedGroup, groupsLoaded])
 
   function resetBracket() {
-    setSf1Winner(null); setSf2Winner(null)
+    setSf1Winner(data?.sf1Winner || null)
+    setSf2Winner(data?.sf2Winner || null)
     setFinalWinner(null); setThirdWinner(null)
     setScorer(null)
   }
@@ -269,25 +283,35 @@ export default function SimuladorPage() {
               </button>
             </div>
 
-            {/* SF1 */}
-            <div className="mb-1">
-              <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Semifinal 1</div>
-              <div className="flex gap-2 items-center">
-                <TeamBtn code={data.sf1.home} selected={sf1Winner === data.sf1.home} locked={!!sf1Winner && sf1Winner !== data.sf1.home} onClick={() => handleSf1(data.sf1.home)} />
-                <span className="text-xs text-gray-400 font-bold">vs</span>
-                <TeamBtn code={data.sf1.away} selected={sf1Winner === data.sf1.away} locked={!!sf1Winner && sf1Winner !== data.sf1.away} onClick={() => handleSf1(data.sf1.away)} />
+            {/* SF Results (decided) or SF Picks */}
+            {data.sf1Winner && data.sf2Winner ? (
+              <div className="mb-3">
+                <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1.5">Semifinais (encerradas)</div>
+                <div className="flex flex-col gap-1.5">
+                  <SfResult home={data.sf1.home} away={data.sf1.away} score={data.sf1Score!} winner={data.sf1Winner} />
+                  <SfResult home={data.sf2.home} away={data.sf2.away} score={data.sf2Score!} winner={data.sf2Winner} />
+                </div>
               </div>
-            </div>
-
-            {/* SF2 */}
-            <div className="mb-3">
-              <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1 mt-2">Semifinal 2</div>
-              <div className="flex gap-2 items-center">
-                <TeamBtn code={data.sf2.home} selected={sf2Winner === data.sf2.home} locked={!!sf2Winner && sf2Winner !== data.sf2.home} onClick={() => handleSf2(data.sf2.home)} />
-                <span className="text-xs text-gray-400 font-bold">vs</span>
-                <TeamBtn code={data.sf2.away} selected={sf2Winner === data.sf2.away} locked={!!sf2Winner && sf2Winner !== data.sf2.away} onClick={() => handleSf2(data.sf2.away)} />
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="mb-1">
+                  <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Semifinal 1</div>
+                  <div className="flex gap-2 items-center">
+                    <TeamBtn code={data.sf1.home} selected={sf1Winner === data.sf1.home} locked={!!sf1Winner && sf1Winner !== data.sf1.home} onClick={() => handleSf1(data.sf1.home)} />
+                    <span className="text-xs text-gray-400 font-bold">vs</span>
+                    <TeamBtn code={data.sf1.away} selected={sf1Winner === data.sf1.away} locked={!!sf1Winner && sf1Winner !== data.sf1.away} onClick={() => handleSf1(data.sf1.away)} />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1 mt-2">Semifinal 2</div>
+                  <div className="flex gap-2 items-center">
+                    <TeamBtn code={data.sf2.home} selected={sf2Winner === data.sf2.home} locked={!!sf2Winner && sf2Winner !== data.sf2.home} onClick={() => handleSf2(data.sf2.home)} />
+                    <span className="text-xs text-gray-400 font-bold">vs</span>
+                    <TeamBtn code={data.sf2.away} selected={sf2Winner === data.sf2.away} locked={!!sf2Winner && sf2Winner !== data.sf2.away} onClick={() => handleSf2(data.sf2.away)} />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Final */}
             {sf1Winner && sf2Winner && (
@@ -302,7 +326,7 @@ export default function SimuladorPage() {
             )}
 
             {/* 3rd Place */}
-            {finalWinner && (
+            {sf1Winner && sf2Winner && (
               <div className="mb-3">
                 <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Terceiro Lugar</div>
                 {(() => {
@@ -459,6 +483,22 @@ function PositionSlot({ label, code, pts, gold }: { label: string; code: string;
       <div className={`text-[9px] font-bold uppercase tracking-wider ${gold ? 'text-amber-600' : 'text-gray-400'}`}>{label}</div>
       <div className="text-sm font-bold mt-0.5 flex items-center justify-center gap-1"><TeamFlag code={code} size={14} /> {code}</div>
       <div className="text-[10px] font-semibold text-amber-600">+{pts}pts</div>
+    </div>
+  )
+}
+
+function SfResult({ home, away, score, winner }: { home: string; away: string; score: { home: number; away: number }; winner: string }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-gray-50 text-xs">
+      <div className={`flex items-center gap-1 flex-1 justify-end ${winner === home ? 'font-bold text-gray-800' : 'text-gray-400'}`}>
+        <span>{TEAM_NAME[home] || home}</span>
+        <TeamFlag code={home} size={14} />
+      </div>
+      <span className="font-mono font-bold text-gray-500 tabular-nums px-1">{score.home} x {score.away}</span>
+      <div className={`flex items-center gap-1 flex-1 ${winner === away ? 'font-bold text-gray-800' : 'text-gray-400'}`}>
+        <TeamFlag code={away} size={14} />
+        <span>{TEAM_NAME[away] || away}</span>
+      </div>
     </div>
   )
 }
