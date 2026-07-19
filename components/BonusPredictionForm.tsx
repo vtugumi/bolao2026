@@ -101,7 +101,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5">
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Campeao <span className="text-amber-600 font-normal">(120 pts)</span>
+          Campeao <span className="text-amber-600 font-normal">(60 pts)</span>
         </label>
         <select value={champion} onChange={e => setChampion(e.target.value)} disabled={locked}
           className={selectClass}>
@@ -125,7 +125,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Vice-campeao <span className="text-amber-600 font-normal">(80 pts)</span>
+          Vice-campeao <span className="text-amber-600 font-normal">(40 pts)</span>
         </label>
         <select value={runnerUp} onChange={e => setRunnerUp(e.target.value)} disabled={locked}
           className={selectClass}>
@@ -146,7 +146,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Terceiro lugar <span className="text-amber-600 font-normal">(50 pts)</span>
+          Terceiro lugar <span className="text-amber-600 font-normal">(25 pts)</span>
         </label>
         <select value={thirdPlace} onChange={e => setThirdPlace(e.target.value)} disabled={locked}
           className={selectClass}>
@@ -167,7 +167,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Quarto lugar <span className="text-amber-600 font-normal">(50 pts)</span>
+          Quarto lugar <span className="text-amber-600 font-normal">(25 pts)</span>
         </label>
         <select value={fourthPlace} onChange={e => setFourthPlace(e.target.value)} disabled={locked}
           className={selectClass}>
@@ -188,7 +188,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Artilheiro <span className="text-amber-600 font-normal">(80 pts)</span>
+          Artilheiro <span className="text-amber-600 font-normal">(40 pts)</span>
         </label>
         <select
           value={isCustomScorer ? '__other__' : topScorer}
@@ -228,7 +228,7 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Primeiro gol do Brasil <span className="text-amber-600 font-normal">(50 pts)</span>
+          Primeiro gol do Brasil <span className="text-amber-600 font-normal">(25 pts)</span>
         </label>
         <select
           value={isCustomBrazilPlayer ? '__other__' : brazilFirstGoal}
@@ -276,12 +276,12 @@ export default function BonusPredictionForm({ initialData, onSave, saving, locke
 
       <div className="text-xs text-gray-400 space-y-1 border-t pt-3">
         <p className="font-semibold text-gray-500">Pontuacao Bonus:</p>
-        <p>+120 pontos por acertar o campeao</p>
-        <p>+80 pontos por acertar o vice-campeao</p>
-        <p>+50 pontos por acertar o terceiro lugar</p>
-        <p>+50 pontos por acertar o quarto lugar</p>
-        <p>+80 pontos por acertar o artilheiro</p>
-        <p>+50 pontos por acertar o primeiro gol do Brasil</p>
+        <p>+60 pontos por acertar o campeao</p>
+        <p>+40 pontos por acertar o vice-campeao</p>
+        <p>+25 pontos por acertar o terceiro lugar</p>
+        <p>+25 pontos por acertar o quarto lugar</p>
+        <p>+40 pontos por acertar o artilheiro</p>
+        <p>+25 pontos por acertar o primeiro gol do Brasil</p>
       </div>
     </div>
   );

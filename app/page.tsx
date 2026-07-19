@@ -204,27 +204,27 @@ export default function HomePage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Campeao correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">120 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">60 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Vice-campeao correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">80 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">40 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Terceiro lugar correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">50 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">25 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Quarto lugar correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">50 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">25 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Artilheiro correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">80 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">40 pts</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">1o gol do Brasil correto</span>
-                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">50 pts</span>
+                  <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">25 pts</span>
                 </div>
               </div>
               <p className="text-[10px] text-amber-600 mt-3 text-center italic">
